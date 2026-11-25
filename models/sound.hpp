@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "../constants/audio.hpp"
+#include "../constants/sympathy.hpp"
 #include "core.hpp"
 
 namespace grmh
@@ -18,7 +19,28 @@ struct Settings
     std::vector<int> notes;              // MIDI notes of the tone fields, the ding first
     bool on_lap = false;                 // the knees lengthen the Gu's neck (air mode 74 Hz instead of 85 Hz)
     double temperature = ROOM_TEMPERATURE; // K
+    unsigned instrument_seed = INSTRUMENT_SEED_DEFAULT; // which instrument: the small mistuning of its modes
 };
+
+// what the networks solve from measurements, for the model to play: how strongly a strike excites each kind of mode,
+// how fast two modes of different fields at the same frequency exchange their energy, and how far an instrument's
+// overtones stray from their ratios
+struct Calibration
+{
+    Participation participation;
+    double coupling_rate = 0.0;    // g, 1/s
+    double mistuning_spread = 0.0; // relative, rms
+};
+
+// two modes of different fields that sing together: their exact exchange over one sample (a rotation of their
+// complex amplitudes by g / sample rate, which keeps their total energy)
+struct Coupling
+{
+    int field_a = 0, mode_a = 0, field_b = 0, mode_b = 0;
+    double cos_angle = 1.0, sin_angle = 0.0;
+};
+
+constexpr int MAX_COUPLINGS = 192;
 
 // one mode, ready for a damped complex oscillator: its rotation per sample, its angular frequency and decay rate
 // (velocity z, acceleration (i w - a) z), the air it moves per unit of velocity, and the velocity a strike gives it
@@ -53,6 +75,8 @@ struct SoundModel
     int field_count = 0;
     std::array<FieldSound, MAX_FIELDS> fields{};
     CavitySound cavity;
+    int coupling_count = 0;
+    std::array<Coupling, MAX_COUPLINGS> couplings{};
     double pressure_gain = 0.0; // full scale per volume acceleration (m3/s2): rho / (4 pi r) / FULL_SCALE_PRESSURE
 
     // the field tuned to a MIDI note, or -1

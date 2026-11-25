@@ -13,7 +13,9 @@
 #include "../constants/audio.hpp"
 #include "../models/sound.hpp"
 #include "cavity_network.hpp"
+#include "couplings.hpp"
 #include "handpan_networks.hpp"
+#include "mistuning.hpp"
 #include "radiation.hpp"
 #include "strike_table.hpp"
 
@@ -22,9 +24,9 @@ namespace grmh
 class Model
 {
 public:
-    // the networks' results for these settings, and the sound model at this sample rate, each mode excited with its
-    // participation (the calibrated one: solve_instrument in instrument.hpp)
-    static Model solve(const Settings& settings, double sample_rate, const Participation& participation)
+    // the networks' results for these settings, and the sound model at this sample rate, with what the measurements
+    // calibrate (the calibrated instrument: solve_instrument in instrument.hpp)
+    static Model solve(const Settings& settings, double sample_rate, const Calibration& calibration)
     {
         if (settings.notes.empty() || settings.notes.size() > (size_t)MAX_FIELDS)
             throw std::invalid_argument("a handpan has 1 to " + std::to_string(MAX_FIELDS) + " tone fields");
@@ -36,13 +38,15 @@ public:
                                      settings.temperature);
         for (const int note : settings.notes)
             model.fields_.push_back(solve_tone_field(note_frequency(note)));
+        apply_mistuning(model.fields_, settings.instrument_seed, calibration.mistuning_spread);
 
         SoundModel& sound = model.sound_;
         sound.sample_rate = sample_rate;
         sound.field_count = (int)settings.notes.size();
         for (size_t i = 0; i < model.fields_.size(); ++i)
             sound.fields[i] = field_sound(settings.notes[i], model.fields_[i], model.cavity_.speed_of_sound,
-                                          participation, sample_rate);
+                                          calibration.participation, sample_rate);
+        find_couplings(model.fields_, calibration.coupling_rate, sample_rate, sound);
         sound.cavity = {model.cavity_.frequency.value, model.cavity_.quality_factor.value};
         const double air_density = ATMOSPHERIC_PRESSURE * M_AIR / (R_GAS * settings.temperature);
         sound.pressure_gain = air_density / (4.0 * PI * LISTENING_DISTANCE) / FULL_SCALE_PRESSURE;

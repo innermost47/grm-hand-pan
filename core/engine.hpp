@@ -57,8 +57,12 @@ public:
             }
             acceleration += cavity_.step(breathing);
             out[n] = (float)(sound_->pressure_gain * acceleration);
+            exchange();
         }
     }
+
+    // a mode's amplitude (m/s), for views and tests
+    double amplitude(int field, int mode) const { return voices_[(size_t)field].amplitude((size_t)mode); }
 
     void silence()
     {
@@ -68,6 +72,17 @@ public:
     }
 
 private:
+    // the fields sing together: each coupled pair of modes exchanges its energy over one sample
+    void exchange()
+    {
+        for (int i = 0; i < sound_->coupling_count; ++i)
+        {
+            const Coupling& c = sound_->couplings[(size_t)i];
+            FieldVoice::exchange(voices_[(size_t)c.field_a], (size_t)c.mode_a, voices_[(size_t)c.field_b],
+                                 (size_t)c.mode_b, c.cos_angle, c.sin_angle);
+        }
+    }
+
     const SoundModel* sound_ = nullptr;
     std::array<FieldVoice, MAX_FIELDS> voices_{};
     CavityResonator cavity_;

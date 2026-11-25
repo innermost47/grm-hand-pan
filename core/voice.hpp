@@ -7,6 +7,7 @@
 #pragma once
 
 #include <array>
+#include <cmath>
 
 #include "../models/sound.hpp"
 
@@ -58,6 +59,20 @@ public:
     {
         re_.fill(0.0);
         im_.fill(0.0);
+    }
+
+    // a mode's amplitude (m/s): the modulus of its complex velocity
+    double amplitude(size_t mode) const { return std::hypot(re_[mode], im_[mode]); }
+
+    // mode m of `a` and mode n of `b` exchange their energy over one sample: their complex amplitudes turn into each
+    // other, (za, zb) <- (cos za + i sin zb, i sin za + cos zb), which keeps |za|^2 + |zb|^2
+    static void exchange(FieldVoice& a, size_t m, FieldVoice& b, size_t n, double cos_angle, double sin_angle)
+    {
+        const double ar = a.re_[m], ai = a.im_[m], br = b.re_[n], bi = b.im_[n];
+        a.re_[m] = cos_angle * ar - sin_angle * bi;
+        a.im_[m] = cos_angle * ai + sin_angle * br;
+        b.re_[n] = cos_angle * br - sin_angle * ai;
+        b.im_[n] = cos_angle * bi + sin_angle * ar;
     }
 
 private:

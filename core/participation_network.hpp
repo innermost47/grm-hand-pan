@@ -33,7 +33,7 @@ inline std::array<ModeLevels, RECORDED_NOTES.size()> unit_participation_levels()
     {
         Settings settings;
         settings.notes = {RECORDED_NOTES[i].note};
-        const Model model = Model::solve(settings, CALIBRATION_SAMPLE_RATE, Participation{});
+        const Model model = Model::solve(settings, CALIBRATION_SAMPLE_RATE, Calibration{});
         const auto rendered = OfflineRenderer::render(
             model.sound(), {{0.0, RECORDED_NOTES[i].note, MIDI_VELOCITY_REFERENCE}}, 1.0);
         levels[i] =
