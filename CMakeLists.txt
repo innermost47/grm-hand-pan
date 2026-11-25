@@ -35,4 +35,9 @@ if(GRMH_BUILD_TESTS)
     grmh_add_core_test(test_tone_field tone_field_network)
     grmh_add_core_test(test_cavity cavity_network)
     grmh_add_core_test(test_strike strike_network)
+    grmh_add_core_test(test_engine sound_engine)
+
+    # the offline tools: the core's sound to a WAV file, for the ear
+    add_executable(render_scale tools/render_scale.cpp)
+    target_link_libraries(render_scale PRIVATE cppgrm)
 endif()
