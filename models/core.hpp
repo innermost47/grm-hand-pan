@@ -78,6 +78,18 @@ struct ToneField
     std::vector<Mode> modes;   // the tuned modes, fundamental first
 };
 
+// one finger strike on a tone field: a half-sine force pulse of the pulp
+struct Strike
+{
+    double velocity;           // m/s, the fingertip at contact
+    Measured contact_time;     // s, the pulp's force transient
+    Measured impulse;          // N s, the momentum the finger gives the field
+    Measured peak_force;       // N
+    Measured pulp_stiffness;   // N/m
+    Measured restitution;      // the share of the finger's velocity that bounces back
+    Measured pulp_hardening;   // 1/m, b in k = b F: how much stiffer the pulp gets per newton
+};
+
 // what the cavity gives the sound: the air mode (Helmholtz), driven by the volume the ding pushes into the cavity
 struct Cavity
 {
