@@ -77,4 +77,15 @@ struct ToneField
     Measured effective_radius; // m, the radius of the plate that rings at the fundamental
     std::vector<Mode> modes;   // the tuned modes, fundamental first
 };
+
+// what the cavity gives the sound: the air mode (Helmholtz), driven by the volume the ding pushes into the cavity
+struct Cavity
+{
+    Measured frequency;         // Hz
+    Measured t60;               // s, radiation losses only: an upper bound
+    Measured quality_factor;    // radiation losses only
+    Measured volume;            // m3
+    Measured neck_conductance;  // m, S / L' of the Gu: its opening over its effective length
+    double speed_of_sound;      // m/s
+};
 } // namespace grmh

@@ -12,6 +12,12 @@
 //           anechoic recordings of four handpans from three makers, struck at the 'D' sweet spot.
 //   [EC3]   EN 1993-1-1 (Eurocode 3) 3.2.6, design values of structural steel; EN 1991-1-1 Table A.4, unit weight.
 //   [L69]   A. W. Leissa, "Vibration of plates", NASA SP-160 (1969), circular plates.
+//   [PB]    PANArt, "Hang" book (English, 2011), section "Helmholtz resonance",
+//           https://panart.ch/files/documents/PANArt_Buch_EN_110522.pdf
+//   [PU]    PANArt, Hang Urgu product page: "a height of 24 cm, a diameter of 52 cm",
+//           https://panart.ch/en/instruments/hang-urgu
+//   [KF00]  L. E. Kinsler, A. R. Frey et al., "Fundamentals of Acoustics", 4th ed. (2000), Helmholtz resonator.
+//   [CODATA] the molar gas constant (exact since 2019).
 #pragma once
 
 #include <array>
@@ -74,8 +80,31 @@ constexpr std::array<DecayStatistics, 3> DECAY_BY_REGISTER{{
 }};
 
 // ---- the cavity (Helmholtz) resonance: "a small peak at 85 Hz, the frequency of the cavity resonance (near F2)" on
-// the Integral Hang [WMR08]; PANArt tunes it to D2 on the later generation [RS07]. Its geometry (volume, Gu
-// opening) is not published: the cavity network solves it from this frequency.
+// the Integral Hang [WMR08]; "about 85 Hz ... an appropriate positioning on the player's lap can lower the resonance
+// to the ding's octave (74 Hz)" [PB]; PANArt tunes it to D2 on the later generation [RS07]. The Gu opening and
+// neck are not published: the cavity network solves the effective neck from the frequency (decision of 25/11/2026).
 constexpr Measured CAVITY_RESONANCE_INTEGRAL_HANG{85.0, 0.02}; // Hz, read on a spectrum
+constexpr Measured CAVITY_RESONANCE_ON_LAP{74.0, 0.02};        // Hz [PB]
 constexpr double CAVITY_RESONANCE_TARGET_NOTE_MIDI = 38.0;     // D2 [RS07]
+
+// ---- the vessel [PU]: overall height and diameter; the cavity inside is the ding shell's diameter [RS07]
+constexpr double HANG_HEIGHT = 0.24;   // m
+constexpr double HANG_DIAMETER = 0.52; // m, with the brass flange ring
+constexpr double MEASURED_DIMENSION_SPREAD = 0.01; // a dimension published to the centimetre
+
+// the shape of the two shells is not published: the cavity volume V = s D^2 H lies between two cones (s = pi / 12)
+// and two half ellipsoids (s = pi / 6); s is their geometric mean, its spread half their ratio in dex
+constexpr double CAVITY_SHAPE_CONES = PI / 12.0;
+constexpr double CAVITY_SHAPE_ELLIPSOIDS = PI / 6.0;
+
+// the radiation of the neck [KF00]: Q = r sqrt(V (L'/S)^3), r = 2 pi for a flanged opening, 4 pi for an unflanged
+// one; the Gu sits in the curved shell, between the two: r is their geometric mean, its spread half their ratio
+constexpr double NECK_RADIATION_FLANGED = 2.0 * PI;
+constexpr double NECK_RADIATION_UNFLANGED = 4.0 * PI;
+
+// ---- the air: c^2 = gamma R T / M
+constexpr double GAMMA_AIR = 1.4;            // diatomic gas
+constexpr double R_GAS = 8.314462618;        // J/(mol K) [CODATA]
+constexpr double M_AIR = 0.028965;           // kg/mol, dry air
+constexpr double ROOM_TEMPERATURE = 293.15;  // K, 20 degrees C
 } // namespace grmh

@@ -15,6 +15,7 @@
 #include "../constants/decay_measurements.hpp"
 #include "../models/core.hpp"
 #include "grm.hpp"
+#include "network_support.hpp"
 
 namespace grmh
 {
@@ -35,12 +36,6 @@ inline void add_decay_relation(grm::Network& net, const std::string& name, const
         [=](const grm::Values& v)
         { return std::log10(v[it]) - std::log10(v[ir]) - v[is] * std::log10(v[iff] / LOSS_REFERENCE_FREQUENCY); },
         1e-9);
-}
-
-inline Measured measured(const grm::Result& r, const grm::Network& net, const std::string& node)
-{
-    const auto i = static_cast<size_t>(net.index(node));
-    return {r.values[i], r.uncertainty[i]};
 }
 } // namespace detail
 
@@ -70,7 +65,7 @@ inline LossLaw solve_loss_law()
 
     LossLaw law{};
     for (int mode = 1; mode <= TUNED_MODES; ++mode)
-        law.t60_at_reference[(size_t)mode - 1] = detail::measured(r, net, detail::mode_name("t60_ref_", mode));
+        law.t60_at_reference[(size_t)mode - 1] = network::measured(r, net, detail::mode_name("t60_ref_", mode));
     law.slope = r["slope"];
     law.slope_sigma = r.uncertainty[(size_t)net.index("slope")];
     law.reference_frequency = LOSS_REFERENCE_FREQUENCY;
@@ -117,8 +112,7 @@ inline ToneField solve_tone_field(double fundamental, const LossLaw& law = loss_
         {"rho", {STEEL_DENSITY.value, STEEL_DENSITY.sigma_dex()}},
         {"nu", {STEEL_POISSON_RATIO.value, STEEL_POISSON_RATIO.sigma_dex()}},
         {"h", {SHELL_THICKNESS.value, SHELL_THICKNESS.sigma_dex()}},
-        {"lambda2", {std::sqrt(PLATE_LAMBDA2_CLAMPED * PLATE_LAMBDA2_SIMPLY_SUPPORTED),
-                     0.5 * std::log10(PLATE_LAMBDA2_CLAMPED / PLATE_LAMBDA2_SIMPLY_SUPPORTED)}},
+        {"lambda2", network::between(PLATE_LAMBDA2_SIMPLY_SUPPORTED, PLATE_LAMBDA2_CLAMPED)},
         {"slope", {law.slope, law.slope_sigma}},
     };
     for (int mode = 1; mode <= TUNED_MODES; ++mode)
@@ -134,10 +128,10 @@ inline ToneField solve_tone_field(double fundamental, const LossLaw& law = loss_
     if (!r.converged)
         throw std::runtime_error("the tone field network did not converge at " + std::to_string(fundamental) + " Hz");
 
-    ToneField field{fundamental, detail::measured(r, net, "a"), {}};
+    ToneField field{fundamental, network::measured(r, net, "a"), {}};
     for (int m = 0; m < TUNED_MODES; ++m)
-        field.modes.push_back({detail::measured(r, net, frequency_of[m]),
-                               detail::measured(r, net, detail::mode_name("t60_", m + 1))});
+        field.modes.push_back({network::measured(r, net, frequency_of[m]),
+                               network::measured(r, net, detail::mode_name("t60_", m + 1))});
     return field;
 }
 } // namespace grmh
