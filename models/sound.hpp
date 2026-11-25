@@ -21,12 +21,13 @@ struct Settings
 };
 
 // one mode, ready for a damped complex oscillator: its rotation per sample, its angular frequency and decay rate
-// (velocity z, acceleration (i w - a) z), and the velocity a strike gives it
+// (velocity z, acceleration (i w - a) z), the air it moves per unit of velocity, and the velocity a strike gives it
 struct ModeSound
 {
     double rotation_re = 0.0, rotation_im = 0.0;      // exp((i w - a) / sample rate)
     double angular_frequency = 0.0;                    // w, rad/s
     double decay_rate = 0.0;                           // a, 1/s
+    double radiating_area = 0.0;                       // m2: the field's area times the mode's radiation factor
     std::array<double, MIDI_VELOCITIES> strike_velocity{}; // m/s per MIDI velocity
 };
 
@@ -34,8 +35,8 @@ struct ModeSound
 struct FieldSound
 {
     int note = 0;
-    double area = 0.0; // m2, the field's effective plate: the air it pushes per unit of velocity
-    std::array<ModeSound, TUNED_MODES> modes{};
+    double area = 0.0; // m2, the field's effective plate: the air its fundamental pushes into the cavity
+    std::array<ModeSound, FIELD_MODES> modes{};
 };
 
 // the air of the cavity, ready to play: the Gu's plug as a resonator driven by the fields' volume velocity

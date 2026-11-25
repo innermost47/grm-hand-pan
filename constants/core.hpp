@@ -59,6 +59,30 @@ constexpr std::array<MeasuredToneField, 5> MEASURED_TONE_FIELDS{{
 // a fourth resonance of the Integral Hang D3 at 1344 Hz [WMR08]: "the higher modes came to lie around the third
 // octave due to the stiffening effect of the dome" [RS07]
 constexpr std::array<double, 3> UNTUNED_MODE_RATIOS{1418.0 / 189.0, 1543.0 / 189.0, 1344.0 / 148.0};
+// their spread covers the Integral Hang's 9.08 from the G3's 8.16
+constexpr double UNTUNED_RATIO_SPREAD = 0.10;
+
+// ---- the modes of a field, and how each radiates [MR07, section 4]: "The active intensity maps show monopole
+// radiation characteristics at the fundamental and second harmonic frequencies ... The intensity field at the third
+// resonance frequency exhibits a dipole pattern". The (2,1) modes have two nodal diameters [MR07]: quadrupoles.
+constexpr std::array<FieldModeShape, 5> FIELD_MODE_SHAPES{{
+    {"(0,1) fundamental", 1.0, 0.0, 0},
+    {"(1,1)a octave", OCTAVE_RATIO, MODE_RATIO_SPREAD, 0},
+    {"(1,1)b compound fifth", COMPOUND_FIFTH_RATIO, MODE_RATIO_SPREAD, 1},
+    {"(2,1)a", UNTUNED_MODE_RATIOS[0], UNTUNED_RATIO_SPREAD, 2},
+    {"(2,1)b", UNTUNED_MODE_RATIOS[1], UNTUNED_RATIO_SPREAD, 2},
+}};
+
+// the peaks of [A15] at four times a field's fundamental (the double octave, 0.6-1.3 kHz), with their T60 (Tables
+// 6.2-6.4, 6.6 and 6.7-6.8, 6.10, 6.12): measured decays above the tuned modes of their field
+constexpr std::array<DecayMeasurement, 6> HIGH_PEAK_DECAYS{{
+    {1178.0, 4, 2.3}, // instrument 1, D4
+    {787.2, 4, 5.0},  // instrument 2, G3
+    {1049.0, 4, 1.8}, // instrument 2, C4
+    {1253.0, 4, 1.7}, // instrument 2, Eb4
+    {588.6, 4, 2.6},  // instrument 3, D3
+    {1323.0, 4, 1.7}, // instrument 4, E4
+}};
 
 // ---- the tone field as a plate: f1 = lambda^2 / (2 pi a^2) * sqrt(D / (rho h)), D = E h^3 / (12 (1 - nu^2)).
 // The edge of a field is "soft" [RS07], neither clamped nor simply supported: the frequency parameter lambda^2 is the

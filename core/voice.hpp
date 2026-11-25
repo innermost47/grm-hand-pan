@@ -47,9 +47,9 @@ public:
             const double re = re_[m] * mode.rotation_re - im_[m] * mode.rotation_im;
             im_[m] = re_[m] * mode.rotation_im + im_[m] * mode.rotation_re;
             re_[m] = re;
-            acceleration -= mode.angular_frequency * im_[m] + mode.decay_rate * re_[m]; // Re((i w - a) z)
-        }
-        motion.volume_acceleration = sound_->area * acceleration;
+            acceleration -= mode.radiating_area * (mode.angular_frequency * im_[m] + mode.decay_rate * re_[m]);
+        } // Re((i w - a) z), times the air the mode moves
+        motion.volume_acceleration = acceleration;
         motion.breathing = sound_->area * re_[0];
         return motion;
     }
@@ -62,6 +62,6 @@ public:
 
 private:
     const FieldSound* sound_ = nullptr;
-    std::array<double, TUNED_MODES> re_{}, im_{};
+    std::array<double, FIELD_MODES> re_{}, im_{};
 };
 } // namespace grmh

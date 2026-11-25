@@ -110,6 +110,30 @@ void check_tone_fields(test::TestReport& report)
             report.expect(mode.t60.value >= DECAY_ALL.min && mode.t60.value <= DECAY_ALL.max,
                           "a mode's T60 lies within the measured range (" + std::to_string(mode.t60.value) + " s)");
 }
+
+void check_untuned_modes(test::TestReport& report)
+{
+    const ToneField g3 = solve_tone_field(189.0);
+    report.expect(g3.modes.size() == (size_t)FIELD_MODES, "a field plays its tuned and untuned modes");
+    report.expect_near(g3.modes[3].frequency.value, 1418.0, 3.0 * g3.modes[3].frequency.spread,
+                       "the G3 field's (2,1)a where [MR07] measured it");
+    report.expect_near(g3.modes[4].frequency.value, 1543.0, 3.0 * g3.modes[4].frequency.spread,
+                       "the G3 field's (2,1)b where [MR07] measured it");
+    report.expect(g3.modes[2].multipole_order == 1 && g3.modes[3].multipole_order == 2,
+                  "the compound fifth is a dipole, the (2,1) modes quadrupoles [MR07]");
+
+    // the untuned modes' T60 extrapolate the loss law above the tuned modes: [A15] measured peaks at four times their
+    // field's fundamental (0.6-1.3 kHz); each must lie within two field spreads of what the law gives that field
+    const double field_spread_dex = DECAY_ALL.standard_deviation / DECAY_ALL.mean / grm::LN10;
+    for (const auto& peak : HIGH_PEAK_DECAYS)
+    {
+        const ToneField field = solve_tone_field(peak.frequency / peak.mode);
+        const double predicted = field.modes[3].t60.value;
+        report.expect(std::fabs(std::log10(peak.t60 / predicted)) < 2.0 * field_spread_dex,
+                      "a peak at " + std::to_string((int)peak.frequency) + " Hz decays as the law says (" +
+                          std::to_string(peak.t60) + " s measured, " + std::to_string(predicted) + " s)");
+    }
+}
 } // namespace
 
 int main()
@@ -118,5 +142,6 @@ int main()
     check_plate_parameters(report);
     check_loss_law(report);
     check_tone_fields(report);
+    check_untuned_modes(report);
     return report.finish();
 }

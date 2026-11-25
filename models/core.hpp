@@ -51,8 +51,19 @@ struct DecayMeasurement
     double t60;
 };
 
-// the number of tuned modes of a tone field
+// the number of tuned modes of a tone field, and of all the modes it plays (the tuned ones, then the untuned)
 constexpr int TUNED_MODES = 3;
+constexpr int FIELD_MODES = 5;
+
+// one mode of a field, as measured: its ratio to the fundamental and the spread of that ratio, and how it radiates
+// (0 monopole, 1 dipole, 2 quadrupole)
+struct FieldModeShape
+{
+    const char* name;
+    double ratio;
+    double spread;
+    int multipole_order;
+};
 
 // how long the tuned modes ring: T60 = t60_at_reference[mode] * (f1 / reference)^slope, f1 the field's fundamental
 struct LossLaw
@@ -63,11 +74,12 @@ struct LossLaw
     double reference_frequency;                         // Hz
 };
 
-// one mode of a tone field: its frequency (Hz) and T60 (s), each with its relative uncertainty
+// one mode of a tone field: its frequency (Hz) and T60 (s), each with its relative uncertainty, and how it radiates
 struct Mode
 {
     Measured frequency;
     Measured t60;
+    int multipole_order = 0;
 };
 
 // what a tone field gives the sound
@@ -75,7 +87,31 @@ struct ToneField
 {
     double fundamental;        // Hz, the note it is tuned to
     Measured effective_radius; // m, the radius of the plate that rings at the fundamental
-    std::vector<Mode> modes;   // the tuned modes, fundamental first
+    std::vector<Mode> modes;   // FIELD_MODES modes: the tuned ones, fundamental first, then the untuned
+};
+
+// the levels of a note's modes against its fundamental, as a microphone hears them (dB)
+struct ModeLevels
+{
+    double fundamental_frequency = 0.0; // Hz, as found
+    double octave = 0.0;
+    double fifth = 0.0;
+    double untuned = 0.0; // the strongest peak 6.5-9.5 times the fundamental
+    double untuned_band_floor = 0.0;
+};
+
+// how strongly a strike at the sweet spot excites each kind of mode, against the fundamental (amplitude ratios)
+struct Participation
+{
+    Measured octave{1.0, 0.0};
+    Measured fifth{1.0, 0.0};
+    Measured untuned{1.0, 0.0};
+
+    // the weight of a field's mode, by its index (0 the fundamental)
+    double of_mode(size_t index) const
+    {
+        return index == 0 ? 1.0 : index == 1 ? octave.value : index == 2 ? fifth.value : untuned.value;
+    }
 };
 
 // one finger strike on a tone field: a half-sine force pulse of the pulp

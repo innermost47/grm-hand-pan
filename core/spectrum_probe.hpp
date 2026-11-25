@@ -1,15 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Anthony Charretier
 //
-// Measures a rendered sound: the level of one frequency over a window (Goertzel, Hann window), the peak.
+// Measures a sound, rendered or recorded: the level of one frequency over a window (Goertzel, Hann window), the
+// strongest frequency in a band, the peak.
 #pragma once
 
 #include <algorithm>
 #include <cmath>
 #include <vector>
 
-namespace grmh::test
+namespace grmh
 {
+// a frequency found in a band, and its level (dB, relative)
+struct SpectralPeak
+{
+    double frequency;
+    double level;
+};
+
 class SpectrumProbe
 {
 public:
@@ -31,6 +39,30 @@ public:
         return 10.0 * std::log10(re * re + im * im + 1e-30);
     }
 
+    // the strongest frequency in [low, high] Hz over the window, searched in steps finer than its resolution
+    SpectralPeak strongest(double low, double high, double start, double length) const
+    {
+        const double step = 0.25 / length; // a quarter of the window's resolution
+        SpectralPeak best{low, level(low, start, length)};
+        for (double f = low + step; f <= high; f += step)
+        {
+            const double l = level(f, start, length);
+            if (l > best.level)
+                best = {f, l};
+        }
+        return best;
+    }
+
+    // the median level over [low, high] Hz: the floor a peak stands above
+    double floor(double low, double high, double start, double length) const
+    {
+        std::vector<double> levels;
+        for (double f = low; f <= high; f += 1.0 / length)
+            levels.push_back(level(f, start, length));
+        std::nth_element(levels.begin(), levels.begin() + levels.size() / 2, levels.end());
+        return levels[levels.size() / 2];
+    }
+
     float peak() const
     {
         float p = 0.0f;
@@ -48,4 +80,4 @@ private:
     const std::vector<float>& samples_;
     double rate_;
 };
-} // namespace grmh::test
+} // namespace grmh

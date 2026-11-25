@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "../constants/scales.hpp"
-#include "../core/model.hpp"
+#include "../core/instrument.hpp"
 #include "../core/offline_renderer.hpp"
 #include "../core/wav_writer.hpp"
 
@@ -29,7 +29,7 @@ int main(int argc, char** argv)
             path = argv[i];
 
     constexpr int SAMPLE_RATE = 48000;
-    const Model model = Model::solve(settings, SAMPLE_RATE);
+    const Model model = solve_instrument(settings, SAMPLE_RATE);
     for (size_t i = 0; i < model.fields().size(); ++i)
     {
         const ToneField& field = model.fields()[i];

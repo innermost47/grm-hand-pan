@@ -11,9 +11,9 @@
 
 #include "../constants/scales.hpp"
 #include "../core/mailbox.hpp"
-#include "../core/model.hpp"
+#include "../core/instrument.hpp"
 #include "../core/offline_renderer.hpp"
-#include "support/spectrum_probe.hpp"
+#include "../core/spectrum_probe.hpp"
 #include "support/test_report.hpp"
 
 using namespace grmh;
@@ -34,7 +34,7 @@ void check_partials(test::TestReport& report, const Model& model, size_t field_i
     const ToneField& field = model.fields()[field_index];
     const int note = model.sound().fields[field_index].note;
     const auto samples = OfflineRenderer::render(model.sound(), {{0.0, note, MIDI_VELOCITY_REFERENCE}}, 4.0);
-    const test::SpectrumProbe probe(samples, RATE);
+    const SpectrumProbe probe(samples, RATE);
     const std::string name = "note " + std::to_string(note);
 
     for (size_t m = 0; m < field.modes.size(); ++m)
@@ -57,7 +57,7 @@ void check_cavity_and_level(test::TestReport& report, const Model& model)
 {
     const int ding = model.sound().fields[0].note;
     const auto samples = OfflineRenderer::render(model.sound(), {{0.0, ding, MIDI_VELOCITY_REFERENCE}}, 4.0);
-    const test::SpectrumProbe probe(samples, RATE);
+    const SpectrumProbe probe(samples, RATE);
     report.expect(probe.finite(), "the sound is finite");
 
     const double air = model.cavity().frequency.value;
@@ -75,11 +75,26 @@ void check_cavity_and_level(test::TestReport& report, const Model& model)
 
     const auto loud = OfflineRenderer::render(model.sound(), {{0.0, ding, 120}}, 1.0);
     const auto soft = OfflineRenderer::render(model.sound(), {{0.0, ding, 20}}, 1.0);
-    report.expect(test::SpectrumProbe(loud, RATE).peak() > test::SpectrumProbe(soft, RATE).peak(),
+    report.expect(SpectrumProbe(loud, RATE).peak() > SpectrumProbe(soft, RATE).peak(),
                   "a harder strike is louder");
 
+    // a soft note has but its tuned partials, an intense note sounds its inharmonic modes too [WMR08]
+    const size_t d4 = 4;
+    const ToneField& field = model.fields()[d4];
+    const int note = model.sound().fields[d4].note;
+    const auto untuned = [&](int velocity)
+    {
+        const auto s = OfflineRenderer::render(model.sound(), {{0.0, note, velocity}}, 1.0);
+        const SpectrumProbe p(s, RATE);
+        return p.level(field.modes[3].frequency.value, 0.02, 0.3) - p.level(field.modes[0].frequency.value, 0.02, 0.3);
+    };
+    const double soft_untuned = untuned(20), loud_untuned = untuned(120);
+    std::printf("  D4 (2,1)a against the fundamental: %.1f dB soft, %.1f dB loud\n", soft_untuned, loud_untuned);
+    report.expect(loud_untuned > soft_untuned + 10.0,
+                  "an intense strike sounds the inharmonic modes far more than a soft one [WMR08]");
+
     const auto stranger = OfflineRenderer::render(model.sound(), {{0.0, 61, 100}}, 0.5);
-    report.expect(test::SpectrumProbe(stranger, RATE).peak() == 0.0f, "a note no field is tuned to is silent");
+    report.expect(SpectrumProbe(stranger, RATE).peak() == 0.0f, "a note no field is tuned to is silent");
 }
 
 // counts the objects alive, to see which the mailbox frees
@@ -116,7 +131,7 @@ void check_mailbox(test::TestReport& report)
 int main()
 {
     test::TestReport report("engine");
-    const Model model = Model::solve(d_kurd(), RATE);
+    const Model model = solve_instrument(d_kurd(), RATE);
     check_partials(report, model, 0);                       // the ding, D3
     check_partials(report, model, model.fields().size() - 1); // the highest field, A4
     check_cavity_and_level(report, model);

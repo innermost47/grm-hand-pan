@@ -79,25 +79,30 @@ inline const LossLaw& loss_law()
     return law;
 }
 
-// one tone field tuned to `fundamental` (Hz): its tuned modes (tuning 1:2:3 within the measured spread), how long
-// each rings (the loss law), and the radius of the steel plate that rings at that fundamental
+// one tone field tuned to `fundamental` (Hz): its modes (the tuned ones 1:2:3 within the measured spread, the untuned
+// ones at their measured ratios), how long each rings (the loss law), and the radius of the steel plate that rings at
+// that fundamental. The loss law is measured on the tuned modes only; it does not depend on a mode's frequency
+// (its slope is on the field's fundamental), so the untuned modes take the mean of the tuned modes' T60, with the
+// spread between them as its uncertainty.
 inline ToneField solve_tone_field(double fundamental, const LossLaw& law = loss_law())
 {
     grm::Network net;
-    const char* frequency_of[TUNED_MODES] = {"f1", "f2", "f3"};
-    const double ratio_of[TUNED_MODES] = {1.0, OCTAVE_RATIO, COMPOUND_FIFTH_RATIO};
-    for (int m = 0; m < TUNED_MODES; ++m)
-        net.add_node(frequency_of[m], fundamental * ratio_of[m]);
+    for (int m = 0; m < FIELD_MODES; ++m)
+        net.add_node(detail::mode_name("f", m + 1), fundamental * FIELD_MODE_SHAPES[(size_t)m].ratio);
     for (auto [name, guess] : {std::pair{"E", STEEL_YOUNG_MODULUS.value}, {"rho", STEEL_DENSITY.value},
                                {"nu", STEEL_POISSON_RATIO.value}, {"nu_term", 0.9}, {"h", SHELL_THICKNESS.value},
                                {"lambda2", 7.0}, {"a", 0.1}})
         net.add_node(name, guess);
     net.add_node("slope", law.slope, true);
 
-    // the tuning: a tuner's aim, which real fields reach within MODE_RATIO_SPREAD
-    const double tuning_sigma = MODE_RATIO_SPREAD / grm::LN10;
-    net.add_log("octave tuning", {{"f2", 1}, {"f1", -1}}, std::log10(OCTAVE_RATIO), tuning_sigma);
-    net.add_log("compound fifth tuning", {{"f3", 1}, {"f1", -1}}, std::log10(COMPOUND_FIFTH_RATIO), tuning_sigma);
+    // the tuning: a tuner's aim, which real fields reach within the measured spread; the untuned modes sit where the
+    // dome puts them [MR07]
+    for (int m = 1; m < FIELD_MODES; ++m)
+    {
+        const FieldModeShape& shape = FIELD_MODE_SHAPES[(size_t)m];
+        net.add_log(std::string("ratio of ") + shape.name, {{detail::mode_name("f", m + 1), 1}, {"f1", -1}},
+                    std::log10(shape.ratio), shape.spread / grm::LN10);
+    }
 
     // the plate: f1 a^2 sqrt(12 rho (1 - nu^2)) / (lambda2 h sqrt(E)) = 1 / (2 pi)
     net.add_sum("Poisson factor", {{"nu_term", 1}, {"nu", 1}}, 1.0, 1e-9, {{"nu", 2.0}});
@@ -115,23 +120,41 @@ inline ToneField solve_tone_field(double fundamental, const LossLaw& law = loss_
         {"lambda2", network::between(PLATE_LAMBDA2_SIMPLY_SUPPORTED, PLATE_LAMBDA2_CLAMPED)},
         {"slope", {law.slope, law.slope_sigma}},
     };
+    double mean_log = 0.0;
     for (int mode = 1; mode <= TUNED_MODES; ++mode)
     {
         const auto& at_reference = law.t60_at_reference[(size_t)mode - 1];
-        const std::string t60 = detail::mode_name("t60_", mode), t60_ref = detail::mode_name("t60_ref_", mode);
-        net.add_node(t60, at_reference.value);
+        const std::string t60_ref = detail::mode_name("t60_ref_", mode);
         net.add_node(t60_ref, at_reference.value);
-        detail::add_decay_relation(net, "decay of mode " + std::to_string(mode), t60, t60_ref, "slope", "f1");
         measured[t60_ref] = {at_reference.value, at_reference.sigma_dex()};
+        mean_log += std::log10(at_reference.value) / TUNED_MODES;
+    }
+    // the untuned modes: the mean of the tuned modes' T60 at the reference, uncertain by the spread between them
+    double spread = 0.0;
+    for (const auto& at_reference : law.t60_at_reference)
+        spread += std::pow(std::log10(at_reference.value) - mean_log, 2) / (TUNED_MODES - 1);
+    net.add_node("t60_ref_untuned", std::pow(10.0, mean_log));
+    std::vector<std::pair<std::string, double>> mean_terms{{"t60_ref_untuned", 1.0}};
+    for (int mode = 1; mode <= TUNED_MODES; ++mode)
+        mean_terms.push_back({detail::mode_name("t60_ref_", mode), -1.0 / TUNED_MODES});
+    net.add_log("untuned modes ring as the mean of the tuned", mean_terms, 0.0, std::sqrt(spread));
+
+    for (int m = 0; m < FIELD_MODES; ++m)
+    {
+        const std::string t60 = detail::mode_name("t60_", m + 1);
+        const std::string t60_ref = m < TUNED_MODES ? detail::mode_name("t60_ref_", m + 1) : "t60_ref_untuned";
+        net.add_node(t60, law.t60_at_reference[0].value);
+        detail::add_decay_relation(net, "decay of mode " + std::to_string(m + 1), t60, t60_ref, "slope", "f1");
     }
     const auto r = net.solve(measured);
     if (!r.converged)
         throw std::runtime_error("the tone field network did not converge at " + std::to_string(fundamental) + " Hz");
 
     ToneField field{fundamental, network::measured(r, net, "a"), {}};
-    for (int m = 0; m < TUNED_MODES; ++m)
-        field.modes.push_back({network::measured(r, net, frequency_of[m]),
-                               network::measured(r, net, detail::mode_name("t60_", m + 1))});
+    for (int m = 0; m < FIELD_MODES; ++m)
+        field.modes.push_back({network::measured(r, net, detail::mode_name("f", m + 1)),
+                               network::measured(r, net, detail::mode_name("t60_", m + 1)),
+                               FIELD_MODE_SHAPES[(size_t)m].multipole_order});
     return field;
 }
 } // namespace grmh
