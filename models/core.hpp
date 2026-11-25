@@ -4,7 +4,9 @@
 // The structs shared by the core (no JUCE).
 #pragma once
 
+#include <array>
 #include <cmath>
+#include <vector>
 
 namespace grmh
 {
@@ -38,5 +40,41 @@ struct DecayStatistics
     double standard_deviation;
     double min;
     double max;
+};
+
+// the T60 of one tuned mode of one tone field: the mode's frequency (Hz), its rank (1 fundamental, 2 octave,
+// 3 compound fifth), its T60 (s)
+struct DecayMeasurement
+{
+    double frequency;
+    int mode;
+    double t60;
+};
+
+// the number of tuned modes of a tone field
+constexpr int TUNED_MODES = 3;
+
+// how long the tuned modes ring: T60 = t60_at_reference[mode] * (f1 / reference)^slope, f1 the field's fundamental
+struct LossLaw
+{
+    std::array<Measured, TUNED_MODES> t60_at_reference; // s, for a field whose fundamental is the reference
+    double slope;                                       // dimensionless, signed
+    double slope_sigma;                                 // absolute
+    double reference_frequency;                         // Hz
+};
+
+// one mode of a tone field: its frequency (Hz) and T60 (s), each with its relative uncertainty
+struct Mode
+{
+    Measured frequency;
+    Measured t60;
+};
+
+// what a tone field gives the sound
+struct ToneField
+{
+    double fundamental;        // Hz, the note it is tuned to
+    Measured effective_radius; // m, the radius of the plate that rings at the fundamental
+    std::vector<Mode> modes;   // the tuned modes, fundamental first
 };
 } // namespace grmh

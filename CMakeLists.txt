@@ -32,4 +32,5 @@ if(GRMH_BUILD_TESTS)
 
     grmh_add_core_test(test_scaffold grm_engine_solves)
     grmh_add_core_test(test_constants sourced_constants)
+    grmh_add_core_test(test_tone_field tone_field_network)
 endif()

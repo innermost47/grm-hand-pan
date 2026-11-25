@@ -11,6 +11,7 @@
 //   [A15]   E. Alon, "Analysis and synthesis of the handpan sound", MSc by research, University of York (2015),
 //           anechoic recordings of four handpans from three makers, struck at the 'D' sweet spot.
 //   [EC3]   EN 1993-1-1 (Eurocode 3) 3.2.6, design values of structural steel; EN 1991-1-1 Table A.4, unit weight.
+//   [L69]   A. W. Leissa, "Vibration of plates", NASA SP-160 (1969), circular plates.
 #pragma once
 
 #include <array>
@@ -19,6 +20,8 @@
 
 namespace grmh
 {
+constexpr double PI = 3.14159265358979323846;
+
 // ---- the steel. The nitrided sheet of PANArt has a "high Young's modulus" [RS07] with no figure given: the values
 // of structural steel are used, with a spread that covers what the standards and the software in use give.
 constexpr Measured STEEL_YOUNG_MODULUS{210.0e9, 0.025}; // Pa, [EC3] 210 GPa; 205 GPa elsewhere in practice
@@ -50,6 +53,17 @@ constexpr std::array<MeasuredToneField, 5> MEASURED_TONE_FIELDS{{
 // a fourth resonance of the Integral Hang D3 at 1344 Hz [WMR08]: "the higher modes came to lie around the third
 // octave due to the stiffening effect of the dome" [RS07]
 constexpr std::array<double, 3> UNTUNED_MODE_RATIOS{1418.0 / 189.0, 1543.0 / 189.0, 1344.0 / 148.0};
+
+// ---- the tone field as a plate: f1 = lambda^2 / (2 pi a^2) * sqrt(D / (rho h)), D = E h^3 / (12 (1 - nu^2)).
+// The edge of a field is "soft" [RS07], neither clamped nor simply supported: the frequency parameter lambda^2 is the
+// geometric mean of the two circular plate values [L69], its spread half their ratio in dex, so that the effective
+// radius carries this uncertainty.
+constexpr double PLATE_LAMBDA2_CLAMPED = 10.2158;          // [L69] clamped circular plate, fundamental
+constexpr double PLATE_LAMBDA2_SIMPLY_SUPPORTED = 4.935;   // [L69] simply supported, nu = 0.3
+
+// ---- the losses of the tuned modes: the law of LossLaw is solved from DECAY_MEASUREMENTS. Each measured T60 weighs
+// with the spread of one tone field around the mean of all instruments, [A15] Table 4.2 (1.0 s over 2.9 s)
+constexpr double LOSS_REFERENCE_FREQUENCY = 440.0; // Hz
 
 // ---- the decay of the three strongest modes, undamped, [A15] Table 4.2
 constexpr DecayStatistics DECAY_ALL{"all instruments", 2.9, 1.0, 0.9, 5.9};
