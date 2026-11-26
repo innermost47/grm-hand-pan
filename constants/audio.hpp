@@ -17,6 +17,7 @@ constexpr double ATMOSPHERIC_PRESSURE = 101325.0; // Pa, standard atmosphere
 // ---- the listener
 constexpr double LISTENING_DISTANCE = 1.0;   // m
 constexpr double FULL_SCALE_PRESSURE = 1.0;  // Pa at full scale: 94 dB SPL
+constexpr double STEREO_WIDTH_DEFAULT = 0.6; // how far apart the fields sound, 0 to 1: for Anthony's ear to set
 
 // ---- a MIDI velocity is a fingertip velocity: the reference tap [K06] at velocity 64, an octave of speed every
 // 32 steps (0.11 m/s at 1, 1.8 m/s at 127)

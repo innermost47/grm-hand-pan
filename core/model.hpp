@@ -17,6 +17,7 @@
 #include "cavity_network.hpp"
 #include "couplings.hpp"
 #include "handpan_networks.hpp"
+#include "layout.hpp"
 #include "mistuning.hpp"
 #include "radiation.hpp"
 #include "strike_table.hpp"
@@ -54,6 +55,7 @@ public:
         sound.pressure_gain = air_density / (4.0 * PI * LISTENING_DISTANCE) / FULL_SCALE_PRESSURE;
         sound.contact = contact_sound(air_density, sample_rate);
         sound.contact.click_gain *= calibration.participation.click.value;
+        apply_layout(sound, settings.notes, settings.stereo_width);
         return model;
     }
 

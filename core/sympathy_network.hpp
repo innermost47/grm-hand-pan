@@ -81,7 +81,7 @@ private:
 // the measured gain: the mean of the four handpans and their standard deviation (dB)
 inline Measured measured_sympathy_gain_db()
 {
-    const double n = SYMPATHY_ENERGY_GAINS_DB.size();
+    const auto n = static_cast<double>(SYMPATHY_ENERGY_GAINS_DB.size());
     const double mean = std::accumulate(SYMPATHY_ENERGY_GAINS_DB.begin(), SYMPATHY_ENERGY_GAINS_DB.end(), 0.0) / n;
     double variance = 0.0;
     for (const double g : SYMPATHY_ENERGY_GAINS_DB)

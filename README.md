@@ -5,8 +5,8 @@ long, how the air in the shell answers, how a fingertip strikes, how the fields 
 network**: physical relations solved against published measurements, each with its uncertainty. No samples, no
 filter tuned by ear. Free software under the AGPL-3.0.
 
-This is a **proof of concept**: the whole sound path runs and renders to WAV files, without a host. The VST3 and
-standalone plugin (JUCE) comes next.
+This is a **proof of concept**: a D Kurd handpan, played from MIDI in a minimal VST3 / standalone plugin (JUCE), or
+rendered to WAV files without a host.
 
 ## Audio examples
 
@@ -21,8 +21,11 @@ Coming soon.
 | The fingertip strike: a pulp that hardens as it is pressed | done |
 | How a strike excites each mode, calibrated on recorded notes | done |
 | Sympathetic fields: neighbours that sing and beat | done |
-| The sound of the finger itself (the contact click) | next |
-| VST3 / standalone plugin | after |
+| The finger's click above the modes (plate theory) | done |
+| Stereo: each field heard from where it sits on the instrument | done |
+| Minimal VST3 / standalone plugin (MIDI in, generic editor) | done |
+| A sharper finger attack, matched to finger recordings | next |
+| The Hand Pan Roll: a circular sequencer, strike zones, pattern bank | after |
 
 ## How it sounds the way it does
 
@@ -50,7 +53,13 @@ something changes, never in the audio callback; their results are plain data tha
   A4), at a coupling rate solved from two measurements: how long a coupled mode takes to rise, and how much energy
   free neighbours add to a strike. Each instrument has its own small mistuning, drawn from measured beatings, so
   near-unisons beat (about 7 Hz).
+- **The finger's click**: while it pushes, the fingertip accelerates the volume the sheet sweeps by F / ρs (Newton),
+  which the shell radiates as a baffled source. Below a field's highest mode that is already in the modes; above it,
+  the click is heard. A soft strike barely clicks, a hard one clearly does.
 - **The level** is physics too: the reference tap on the ding gives 74 dB SPL at 1 m, without any gain set by ear.
+- **Stereo**: the ding sits in the middle, the lowest field of the ring in front of the player (struck with the right
+  hand), then the scale goes up left, right, left... the highest at the back. Each field, and its click, is heard
+  from its side; the stereo width is a setting.
 
 ## Build and run
 
@@ -62,6 +71,13 @@ cmake -B build -DGRMH_BUILD_TESTS=ON
 cmake --build build --config Release
 ctest --test-dir build -C Release
 ```
+
+CMake also downloads JUCE and builds the plugin (`-DGRMH_BUILD_PLUGIN=OFF` to skip it): the VST3 is
+`build\GRMHandPan_artefacts\Release\VST3\GRM Hand Pan.vst3` (copy it to `C:\Program Files\Common Files\VST3`), the
+standalone `build\GRMHandPan_artefacts\Release\Standalone\GRM Hand Pan.exe`. Each MIDI note-on strikes the field tuned
+to that note (D3, A3, Bb3, C4, D4, E4, F4, G4, A4), at its velocity; note-offs are ignored, a handpan rings until it
+fades. Two settings: on the lap, and the stereo width. The first time it loads, the instrument calibrates itself on
+its measurements for about 15 seconds before it sounds.
 
 Then render (the paths are those of a Visual Studio build; with a single-configuration generator, drop `Release\`):
 
@@ -76,8 +92,9 @@ build\Release\render_melody renders\handpan_melody_lap.wav --lap
 - `render_melody`: a short piece, the ding as a pulse, rolls, flams, a sung phrase; `--lap` holds the instrument on
   the lap (the air mode drops from 85 to 74 Hz).
 
-The other tools: `measure_recordings <folder> <notes...>` measures recorded notes against the model with the meter
-of the tests, `probe_sympathy` shows how the sympathy network sees its unknown.
+The renderings are stereo. The other tools: `measure_recordings <folder> <notes...>` measures recorded notes against
+the model with the meter of the tests, `probe_sympathy` shows how the sympathy network sees its unknown,
+`probe_click` compares the attack of the recordings with the model's.
 
 ## Tests
 
@@ -95,6 +112,9 @@ error before it was kept.
 | `mode_radiation` | monopole, dipole and quadrupole fields against their compact and incoherent limits |
 | `mode_participation` | the calibrated instrument against the recorded notes |
 | `sympathetic_fields` | energy kept by the exchange, the coupling against its measurements, the beatings |
+| `finger_click` | the contact pulse, Newton over a baffle, the click left to the modes below them, louder is brighter |
+| `field_layout` | where the fields sit and sound, constant-power stereo gains |
+| `plugin_as_hosted` | the plugin called as a host would: silent while it solves, MIDI to sound, stereo, stop and play again, state |
 
 ## Layout
 
@@ -103,6 +123,7 @@ error before it was kept.
 - `models/`: the structs that travel between the parts.
 - `core/`: the networks, the model, the real-time engine (voices, cavity, sympathy), the offline renderer. No JUCE:
   everything is tested and rendered without a host.
+- `plugin/`: the JUCE plugin, thin: parameters, MIDI, the solver thread, the engine in `processBlock`.
 - `tools/`: renderers and measuring tools. `tests/`: one test per part.
 
 ## Sources

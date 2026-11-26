@@ -3,15 +3,11 @@
 //
 // A short piece for the D Kurd handpan, to hear the instrument played rather than probed: the ding as a pulse, rolls,
 // flams, arpeggios and a sung phrase, at 84 BPM in sixteen bars. Usage: render_melody [out.wav] [--lap]
-#include <algorithm>
-#include <cmath>
-#include <cstdio>
-#include <cstring>
 #include <string>
 
 #include "../constants/scales.hpp"
 #include "../core/instrument.hpp"
-#include "../core/wav_writer.hpp"
+#include "render_support.hpp"
 #include "score.hpp"
 
 using namespace grmh;
@@ -93,14 +89,8 @@ void ending(Score& s)
 
 int main(int argc, char** argv)
 {
-    std::string path = "handpan_melody.wav";
-    Settings settings;
-    settings.notes.assign(D_KURD.begin(), D_KURD.end());
-    for (int i = 1; i < argc; ++i)
-        if (std::strcmp(argv[i], "--lap") == 0)
-            settings.on_lap = true;
-        else
-            path = argv[i];
+    std::string path;
+    const Settings settings = d_kurd_from_arguments(argc, argv, path, "handpan_melody.wav");
 
     constexpr int SAMPLE_RATE = 48000;
     Score score(84.0, 0.008, 6, 2611);
@@ -110,12 +100,7 @@ int main(int argc, char** argv)
     ending(score);
 
     const Model model = solve_instrument(settings, SAMPLE_RATE);
-    std::vector<float> samples = OfflineRenderer::render(model.sound(), score.play(), score.seconds(61.0) + 6.0);
-    float peak = 0.0f;
-    for (const float s : samples)
-        peak = std::max(peak, std::fabs(s));
-    std::printf("peak %.1f dBFS\n", 20 * std::log10(peak));
-    WavWriter::write(path, samples, SAMPLE_RATE);
-    std::printf("wrote %s (%.1f s)\n", path.c_str(), samples.size() / double(SAMPLE_RATE));
+    write_rendering(path, OfflineRenderer::render_stereo(model.sound(), score.play(), score.seconds(61.0) + 6.0),
+                    SAMPLE_RATE);
     return 0;
 }

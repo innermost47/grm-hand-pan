@@ -10,6 +10,7 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(GRMH_BUILD_PLUGIN "Build the JUCE plugin, VST3 and standalone (downloads JUCE)" ON)
 option(GRMH_BUILD_TESTS "Build the tests and the offline tools" OFF)
 
 include(FetchContent)
@@ -40,16 +41,64 @@ if(GRMH_BUILD_TESTS)
     grmh_add_core_test(test_participation mode_participation)
     grmh_add_core_test(test_sympathy sympathetic_fields)
     grmh_add_core_test(test_finger_click finger_click)
+    grmh_add_core_test(test_layout field_layout)
 
-    # the offline tools: the core's sound to a WAV file, for the ear
-    add_executable(render_scale tools/render_scale.cpp)
-    target_link_libraries(render_scale PRIVATE cppgrm)
-    add_executable(render_melody tools/render_melody.cpp)
-    target_link_libraries(render_melody PRIVATE cppgrm)
-    add_executable(probe_click tools/probe_click.cpp)
-    target_link_libraries(probe_click PRIVATE cppgrm)
-    add_executable(probe_sympathy tools/probe_sympathy.cpp)
-    target_link_libraries(probe_sympathy PRIVATE cppgrm)
-    add_executable(measure_recordings tools/measure_recordings.cpp)
-    target_link_libraries(measure_recordings PRIVATE cppgrm)
+    # the offline tools: the core's sound to a WAV file for the ear, and the probes of the networks
+    foreach(tool render_scale render_melody probe_click probe_sympathy measure_recordings)
+        add_executable(${tool} tools/${tool}.cpp)
+        target_link_libraries(${tool} PRIVATE cppgrm)
+    endforeach()
+endif()
+
+if(GRMH_BUILD_PLUGIN)
+    FetchContent_Declare(JUCE
+        GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
+        GIT_TAG 8.0.15
+        GIT_SHALLOW ON)
+    FetchContent_MakeAvailable(JUCE)
+
+    juce_add_plugin(GRMHandPan
+        COMPANY_NAME "InnerMost47"
+        BUNDLE_ID "com.innermost47.grm-hand-pan"
+        PLUGIN_MANUFACTURER_CODE Grmc
+        PLUGIN_CODE Grmh
+        FORMATS VST3 Standalone
+        PRODUCT_NAME "GRM Hand Pan"
+        IS_SYNTH TRUE
+        NEEDS_MIDI_INPUT TRUE
+        NEEDS_MIDI_OUTPUT FALSE
+        IS_MIDI_EFFECT FALSE
+        COPY_PLUGIN_AFTER_BUILD FALSE)
+
+    target_sources(GRMHandPan PRIVATE
+        plugin/HandPanProcessor.cpp
+        plugin/SolverThread.cpp)
+
+    target_compile_definitions(GRMHandPan PUBLIC
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0
+        JUCE_VST3_CAN_REPLACE_VST2=0
+        JUCE_DISPLAY_SPLASH_SCREEN=0)
+
+    target_link_libraries(GRMHandPan
+        PRIVATE
+            cppgrm
+            juce::juce_audio_utils
+        PUBLIC
+            juce::juce_recommended_config_flags
+            juce::juce_recommended_lto_flags
+            juce::juce_recommended_warning_flags)
+
+    if(GRMH_BUILD_TESTS)
+        # a test built against the plugin's code
+        function(grmh_add_plugin_test source ctest_name)
+            add_executable(${source} tests/${source}.cpp)
+            target_link_libraries(${source} PRIVATE GRMHandPan cppgrm juce::juce_audio_utils
+                juce::juce_recommended_config_flags)
+            target_compile_definitions(${source} PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+            add_test(NAME ${ctest_name} COMMAND ${source})
+        endfunction()
+
+        grmh_add_plugin_test(plugin_host_test plugin_as_hosted)
+    endif()
 endif()

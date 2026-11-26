@@ -39,7 +39,7 @@ public:
         voices_[(size_t)field].strike(midi_velocity);
         const FieldSound& struck = sound_->fields[(size_t)field];
         contacts_.press(sound_->contact.length[(size_t)midi_velocity], sound_->contact.peak_force[(size_t)midi_velocity],
-                        &struck.click_residual, struck.click_tail);
+                        &struck.click_residual, struck.click_tail, struck.left_gain, struck.right_gain);
     }
 
     // the pressure at the listener, in full scale, for `count` samples: the modes' p = rho / (4 pi r) dU/dt, dU/dt the
@@ -47,22 +47,17 @@ public:
     void render(float* out, int count)
     {
         for (int n = 0; n < count; ++n)
+            out[n] = (float)step().mono;
+    }
+
+    // the same in two channels: each field and its click from where it sits, the Gu in the middle
+    void render_stereo(float* left, float* right, int count)
+    {
+        for (int n = 0; n < count; ++n)
         {
-            if (sound_ == nullptr)
-            {
-                out[n] = 0.0f;
-                continue;
-            }
-            double acceleration = 0.0, breathing = 0.0;
-            for (int i = 0; i < sound_->field_count; ++i)
-            {
-                const FieldMotion motion = voices_[(size_t)i].step();
-                acceleration += motion.volume_acceleration;
-                breathing += motion.breathing;
-            }
-            acceleration += cavity_.step(breathing);
-            out[n] = (float)(sound_->pressure_gain * acceleration + sound_->contact.click_gain * contacts_.step());
-            exchange();
+            const Pressure p = step();
+            left[n] = (float)p.left;
+            right[n] = (float)p.right;
         }
     }
 
@@ -78,6 +73,38 @@ public:
     }
 
 private:
+    // the pressure of one sample (full scale), heard as one and in two channels
+    struct Pressure
+    {
+        double mono = 0.0, left = 0.0, right = 0.0;
+    };
+
+    Pressure step()
+    {
+        Pressure p;
+        if (sound_ == nullptr)
+            return p;
+        double breathing = 0.0;
+        for (int i = 0; i < sound_->field_count; ++i)
+        {
+            const FieldSound& field = sound_->fields[(size_t)i];
+            const FieldMotion motion = voices_[(size_t)i].step();
+            const double field_pressure = sound_->pressure_gain * motion.volume_acceleration;
+            p.mono += field_pressure;
+            p.left += field.left_gain * field_pressure;
+            p.right += field.right_gain * field_pressure;
+            breathing += motion.breathing;
+        }
+        const double gu = sound_->pressure_gain * cavity_.step(breathing);
+        double click_left = 0.0, click_right = 0.0;
+        const double click = contacts_.step(click_left, click_right);
+        p.mono += gu + sound_->contact.click_gain * click;
+        p.left += gu + sound_->contact.click_gain * click_left;
+        p.right += gu + sound_->contact.click_gain * click_right;
+        exchange();
+        return p;
+    }
+
     // the fields sing together: each coupled pair of modes exchanges its energy over one sample
     void exchange()
     {

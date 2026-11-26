@@ -3,30 +3,20 @@
 //
 // The first sound: a D Kurd handpan played up and down its scale at the reference velocity, then the ding soft and
 // loud, then a chord. Usage: render_scale [out.wav] [--lap]
-#include <algorithm>
-#include <cmath>
 #include <cstdio>
-#include <cstring>
 #include <string>
 #include <vector>
 
-#include "../constants/scales.hpp"
 #include "../core/instrument.hpp"
 #include "../core/offline_renderer.hpp"
-#include "../core/wav_writer.hpp"
+#include "render_support.hpp"
 
 using namespace grmh;
 
 int main(int argc, char** argv)
 {
-    std::string path = "handpan_d_kurd.wav";
-    Settings settings;
-    settings.notes.assign(D_KURD.begin(), D_KURD.end());
-    for (int i = 1; i < argc; ++i)
-        if (std::strcmp(argv[i], "--lap") == 0)
-            settings.on_lap = true;
-        else
-            path = argv[i];
+    std::string path;
+    const Settings settings = d_kurd_from_arguments(argc, argv, path, "handpan_d_kurd.wav");
 
     constexpr int SAMPLE_RATE = 48000;
     const Model model = solve_instrument(settings, SAMPLE_RATE);
@@ -53,13 +43,6 @@ int main(int argc, char** argv)
     for (const size_t i : {0, 3, 5, 7}) // a chord: D3 C4 E4 G4
         strikes.push_back({t, settings.notes[i], 80});
 
-    std::vector<float> samples = OfflineRenderer::render(model.sound(), strikes, t + 6.0);
-    float peak = 0.0f;
-    for (const float s : samples)
-        peak = std::max(peak, std::fabs(s));
-    std::printf("peak %.1f dBFS (full scale %.0f dB SPL at %.0f m)\n", 20 * std::log10(peak),
-                20 * std::log10(FULL_SCALE_PRESSURE / 20e-6), LISTENING_DISTANCE);
-    WavWriter::write(path, samples, SAMPLE_RATE);
-    std::printf("wrote %s (%.1f s)\n", path.c_str(), samples.size() / double(SAMPLE_RATE));
+    write_rendering(path, OfflineRenderer::render_stereo(model.sound(), strikes, t + 6.0), SAMPLE_RATE);
     return 0;
 }

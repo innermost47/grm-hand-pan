@@ -20,6 +20,7 @@ struct Settings
     bool on_lap = false;                 // the knees lengthen the Gu's neck (air mode 74 Hz instead of 85 Hz)
     double temperature = ROOM_TEMPERATURE; // K
     unsigned instrument_seed = INSTRUMENT_SEED_DEFAULT; // which instrument: the small mistuning of its modes
+    double stereo_width = STEREO_WIDTH_DEFAULT;          // 0 mono, 1 the side fields hard in one channel
 };
 
 // what the networks solve from measurements, for the model to play: how strongly a strike excites each kind of mode,
@@ -61,6 +62,7 @@ struct FieldSound
     std::array<ModeSound, FIELD_MODES> modes{};
     BiquadCoefficients click_residual; // a high-pass at the field's highest mode: the finger's click above the modes
     int click_tail = 0;                // samples the residual rings once the finger has left
+    double left_gain = 1.0, right_gain = 1.0; // where the field sounds between the channels (core/layout.hpp)
 };
 
 // the air of the cavity, ready to play: the Gu's plug as a resonator driven by the fields' volume velocity
