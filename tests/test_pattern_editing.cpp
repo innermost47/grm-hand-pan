@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "../core/pattern_editor.hpp"
-#include "../core/pattern_history.hpp"
+#include "../core/history.hpp"
 #include "support/test_report.hpp"
 
 using namespace grmh;
@@ -85,7 +85,7 @@ void check_clipboard(test::TestReport& report)
 
 void check_history(test::TestReport& report)
 {
-    PatternHistory history;
+    History<Pattern> history;
     Pattern p;
     const Pattern empty = p;
     PatternEditor::add(p, hit(0, 0));

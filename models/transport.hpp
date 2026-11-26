@@ -47,5 +47,16 @@ struct CompiledPattern
 {
     std::vector<ScheduledStrike> strikes;
     double length_beats = 0.0;
+    double bar_beats = 4.0; // one bar, in quarter notes: a pattern asked for starts on the next bar line of its own
+    bool loop = true;       // false: played once (a song)
+};
+
+// every pattern of the banks ready for the audio thread (by bank * PATTERNS_PER_BANK + slot), the one edited, and the
+// song (the arrangement, played once from the song's start)
+struct CompiledLibrary
+{
+    std::vector<CompiledPattern> patterns;
+    int edited = 0;
+    CompiledPattern song;
 };
 } // namespace grmh

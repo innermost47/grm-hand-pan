@@ -8,6 +8,7 @@
 
 #include <atomic>
 #include <memory>
+#include <mutex>
 
 #include "../core/mailbox.hpp"
 #include "../core/model.hpp"
@@ -25,6 +26,13 @@ public:
     // true once a first model has been posted
     bool ready() const { return ready_.load(); }
 
+    // any thread but the audio one: the last model posted (null before the first), to render offline
+    std::shared_ptr<const grmh::SoundModel> shown_model() const
+    {
+        const std::lock_guard<std::mutex> lock(shown_lock_);
+        return shown_;
+    }
+
     void run() override;
 
 private:
@@ -35,6 +43,8 @@ private:
     grmh::Mailbox<grmh::SoundModel>& models_;
     std::atomic<double> sample_rate_{0.0};
     std::atomic<bool> ready_{false};
+    mutable std::mutex shown_lock_; // never taken by the audio thread
+    std::shared_ptr<const grmh::SoundModel> shown_;
 
     std::unique_ptr<grmh::Model> last_model_;
     grmh::Settings last_settings_;

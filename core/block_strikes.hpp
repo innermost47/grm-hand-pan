@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Anthony Charretier
 //
-// The pattern's strikes that fall in one audio block, at their sample, in time order: what the audio thread plays
-// between the host's MIDI notes. A fixed room, nothing allocated.
+// The patterns' strikes that fall in one audio block, at their sample, in time order: what the audio thread plays
+// between the host's MIDI notes. A block can hold the end of a pattern and the start of the next one (a pattern
+// switched on a bar line): each is added over its own stretch of samples, from its own origin. A fixed room,
+// nothing allocated.
 #pragma once
 
 #include <algorithm>
@@ -18,22 +20,44 @@ namespace grmh
 class BlockStrikes
 {
 public:
-    // the strikes of `sequencer` in `block` (of `samples` samples); none while the clock is still
-    void gather(const PatternSequencer& sequencer, const ClockBlock& block, int samples)
+    void clear() { count_ = 0; }
+
+    // the strikes of `sequencer` started at the song's beat `origin`, from the song's beat `from` to `to` (within
+    // `block`, of `samples` samples): a stretch ends on a bar line exactly, never on the sample after it
+    void add(const PatternSequencer& sequencer, const ClockBlock& block, int samples, double origin, double from,
+             double to)
     {
-        count_ = 0;
-        if (!block.playing || block.beats_per_sample <= 0.0 || samples <= 0)
+        if (!block.playing || block.beats_per_sample <= 0.0 || to <= from || samples <= 0)
             return;
-        const double end = block.start_beat + block.beats_per_sample * samples;
-        sequencer.strikes_in(block.start_beat, end, block.tempo, [&](double beat, const ScheduledStrike& s)
+        sequencer.strikes_in(from - origin, to - origin, block.tempo, [&](double beat, const ScheduledStrike& s)
                              {
                                  if (count_ == MAX_BLOCK_STRIKES)
                                      return;
-                                 const int at = (int)std::floor((beat - block.start_beat) / block.beats_per_sample);
+                                 const double song_beat = beat + origin;
+                                 const int at = (int)std::floor((song_beat - block.start_beat) / block.beats_per_sample);
                                  strikes_[(size_t)count_++] = {std::clamp(at, 0, samples - 1), s.note, s.velocity};
                              });
-        std::sort(strikes_.begin(), strikes_.begin() + count_,
-                  [](const BlockStrike& a, const BlockStrike& b) { return a.sample < b.sample; });
+    }
+
+    // the song's beat at the end of `block`
+    static double end_beat(const ClockBlock& block, int samples)
+    {
+        return block.start_beat + block.beats_per_sample * samples;
+    }
+
+    // in time order, once every stretch is added
+    void sort()
+    {
+        std::stable_sort(strikes_.begin(), strikes_.begin() + count_,
+                         [](const BlockStrike& a, const BlockStrike& b) { return a.sample < b.sample; });
+    }
+
+    // a block of one pattern looped from the song's start
+    void gather(const PatternSequencer& sequencer, const ClockBlock& block, int samples)
+    {
+        clear();
+        add(sequencer, block, samples, 0.0, block.start_beat, end_beat(block, samples));
+        sort();
     }
 
     int size() const { return count_; }

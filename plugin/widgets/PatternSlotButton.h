@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Anthony Charretier
 //
 // One pattern of a bank: its number and its name, a dot when it holds hits, a sakura border when it is the one being
-// edited and played. A click chooses it, a right click asks for its menu.
+// edited, a vermilion one while a key plays it. A click chooses it, a right click asks for its menu.
 #pragma once
 
 #include <functional>
@@ -12,12 +12,14 @@
 class PatternSlotButton : public juce::Component
 {
 public:
-    void show(int number, const juce::String& name, bool used, bool current);
+    void show(int number, const juce::String& name, bool used, bool current, bool playing);
+    bool playing() const { return playing_; } // for tests
 
-    std::function<void()> on_select, on_menu;
+    std::function<void()> on_select, on_menu, on_drag; // on_drag: dragged out (to the arranger)
 
     void paint(juce::Graphics& g) override;
     void mouseDown(const juce::MouseEvent& event) override;
+    void mouseDrag(const juce::MouseEvent& event) override;
     void mouseEnter(const juce::MouseEvent&) override { repaint(); }
     void mouseExit(const juce::MouseEvent&) override { repaint(); }
 
@@ -26,5 +28,5 @@ public:
 private:
     int number_ = 0;
     juce::String name_;
-    bool used_ = false, current_ = false;
+    bool used_ = false, current_ = false, playing_ = false;
 };

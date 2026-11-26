@@ -18,11 +18,13 @@ namespace grmh
 class PatternSequencer
 {
 public:
-    // plays these strikes from now on, looped every `length_beats` quarter notes (they outlive their use here)
-    void set(const std::vector<ScheduledStrike>* strikes, double length_beats)
+    // plays these strikes from now on, looped every `length_beats` quarter notes, or once when `loop` is false (they
+    // outlive their use here)
+    void set(const std::vector<ScheduledStrike>* strikes, double length_beats, bool loop = true)
     {
         strikes_ = strikes;
         length_ = length_beats;
+        loop_ = loop;
     }
 
     // every strike in [from, to) of the song (quarter notes, the pattern starting at 0), at `tempo` BPM:
@@ -35,12 +37,19 @@ public:
         for (const ScheduledStrike& s : *strikes_)
         {
             const double at = s.beat + s.offset * tempo / 60.0;
+            if (!loop_)
+            {
+                if (at >= from && at < to)
+                    emit(at, s);
+                continue;
+            }
             for (double k = std::ceil((from - at) / length_); at + k * length_ < to; k += 1.0)
                 emit(at + k * length_, s);
         }
     }
 
-    // `loops` loops at `tempo`, in seconds from the earliest grace (for the offline renderer)
+    // `loops` loops at `tempo` (once when it does not loop), in seconds from the earliest grace (for the offline
+    // renderer)
     std::vector<TimedStrike> timeline(int loops, double tempo) const
     {
         std::vector<TimedStrike> timed;
@@ -49,7 +58,8 @@ public:
         double lead = 0.0; // beats: the earliest grace before the first beat
         for (const ScheduledStrike& s : *strikes_)
             lead = std::max(lead, -(s.beat + s.offset * tempo / 60.0));
-        strikes_in(-lead, loops * length_ - lead, tempo, [&](double beat, const ScheduledStrike& s)
+        const double end = loop_ ? loops * length_ - lead : length_; // played once: to its end
+        strikes_in(-lead, end, tempo, [&](double beat, const ScheduledStrike& s)
                    { timed.push_back({(beat + lead) * 60.0 / tempo, s.note, s.velocity}); });
         std::sort(timed.begin(), timed.end(), [](const TimedStrike& a, const TimedStrike& b) { return a.time < b.time; });
         return timed;
@@ -58,5 +68,6 @@ public:
 private:
     const std::vector<ScheduledStrike>* strikes_ = nullptr;
     double length_ = 0.0;
+    bool loop_ = true;
 };
 } // namespace grmh

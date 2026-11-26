@@ -164,6 +164,78 @@ void check_patterns(test::TestReport& report, HandPanProcessor& processor, HandP
     report.expect(processor.library().current() == SlotId{0, 0} && processor.pattern().hits.size() == 1,
                   "back to A1: its hit is still there");
 }
+
+// the arranger: blocks added, turned, repeated, moved, removed; the song saved; Song played, the roll following it
+void check_arranger(test::TestReport& report, HandPanProcessor& processor, HandPanEditor& editor)
+{
+    ArrangerView& song = editor.arranger_view();
+    song.add_edited();                // A1
+    song.add_rest();                  // a bar of silence
+    song.drop_pattern(1 * PATTERNS_PER_BANK + 4, 1); // B5 dropped between them
+    song.refresh();
+    const auto& blocks = [&]() -> const std::vector<ArrangementBlock>& { return processor.arrangement().blocks; };
+    report.expect(song.row_count() == 3 && blocks()[0].slot == SlotId{0, 0} && blocks()[1].slot == SlotId{1, 4} &&
+                      blocks()[2].rest,
+                  "+ Pattern (A1), + Rest, and B5 dropped between them");
+    report.expect(song.row(1).name().startsWith("Groove") && song.row(1).name().contains("B5"),
+                  "a block shows its pattern's name and place: Groove (B5)");
+    song.change_count(0, 1);
+    song.next_variation(0);
+    report.expect(blocks()[0].count == 2 && blocks()[0].slot == SlotId{1, 0}, "A1 played twice, then turned to B1");
+    song.next_variation(0);
+    song.next_variation(0);
+    song.next_variation(0);
+    song.move(2, 0);
+    report.expect(blocks()[0].rest && blocks()[1].slot == SlotId{0, 0}, "the silence moved first; the block back to A1");
+    song.set_rest_signature(0, {7, 8});
+    report.expect(blocks()[0].signature == TimeSignature{7, 8}, "the silence's bars in 7/8");
+    song.remove(0);
+    report.expect(song.row_count() == 2 && !blocks()[0].rest, "the silence removed");
+    song.keyPressed(juce::KeyPress('z', juce::ModifierKeys::commandModifier, 0));
+    report.expect(song.row_count() == 3 && blocks()[0].rest && blocks()[0].signature == TimeSignature{7, 8},
+                  "Ctrl + Z in the arranger: the silence back, in 7/8");
+    song.keyPressed(juce::KeyPress('y', juce::ModifierKeys::commandModifier, 0));
+    report.expect(song.row_count() == 2, "Ctrl + Y: removed again");
+    song.undo();
+    song.undo();
+    report.expect(blocks()[0].signature == TimeSignature{}, "undone once more: the silence back in 4/4");
+    song.redo();
+    song.redo();
+
+    // the list scrolls
+    for (int i = 0; i < 30; ++i)
+        song.add_rest();
+    song.refresh();
+    song.viewport().setViewPosition(0, 400);
+    report.expect(song.scrolls() && song.viewport().getViewPositionY() == 400,
+                  "thirty-two blocks: the list is taller than the zone, and it scrolls");
+    for (int i = 0; i < 30; ++i)
+        song.undo();
+    report.expect(song.row_count() == 2, "the thirty silences undone one by one");
+
+    juce::MemoryBlock saved;
+    processor.getStateInformation(saved);
+    HandPanProcessor reloaded;
+    reloaded.setStateInformation(saved.getData(), (int)saved.getSize());
+    report.expect(reloaded.arrangement() == processor.arrangement(), "the song saved and loaded again");
+
+    // Song on: the song plays; at beat 8 (A1 played twice) B5 plays, and the roll follows it
+    auto* song_switch = processor.parameters().getParameter(plugin::PARAM_SONG);
+    song_switch->setValueNotifyingHost(1.0f);
+    processor.select_pattern({0, 0});
+    processor.transport().stop();
+    processor.transport().play();
+    processor.prepareToPlay(48000.0, 512);
+    juce::AudioBuffer<float> block(2, 512);
+    juce::MidiBuffer none;
+    for (int samples = 0; samples < (int)(8.5 * 60.0 / TEMPO_DEFAULT * 48000.0); samples += 512)
+        processor.processBlock(block, none);
+    song.refresh();
+    report.expect(song.row(1).playing() && !song.row(0).playing() && processor.library().current() == SlotId{1, 4},
+                  "Song on, beat 8.5: B5 plays, in vermilion, and the roll shows it");
+    processor.transport().stop();
+    song_switch->setValueNotifyingHost(0.0f);
+}
 } // namespace
 
 int main()
@@ -257,6 +329,7 @@ int main()
     report.expect(roll.glow(0) > 0.0f && roll.glow(0) < 1.0f, "then fades, as the note does");
     check_drawing(report, processor, roll);
     check_patterns(report, processor, dynamic_cast<HandPanEditor&>(*editor));
+    check_arranger(report, processor, dynamic_cast<HandPanEditor&>(*editor));
     editor.reset();
     return report.finish();
 }

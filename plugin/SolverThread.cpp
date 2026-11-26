@@ -30,6 +30,10 @@ grmh::Settings SolverThread::read_settings() const
 void SolverThread::post(const grmh::SoundModel& sound)
 {
     models_.post(new grmh::SoundModel(sound));
+    {
+        const std::lock_guard<std::mutex> lock(shown_lock_);
+        shown_ = std::make_shared<const grmh::SoundModel>(sound);
+    }
     ready_.store(true);
 }
 

@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Anthony Charretier
 #include "PatternsView.h"
 
+#include "../../constants/plugin.hpp"
 #include "../../constants/sizes.hpp"
 
 using namespace grmh;
@@ -18,6 +19,12 @@ PatternsView::PatternsView(HandPanProcessor& processor) : processor_(processor)
     {
         slots_[(size_t)s].on_select = [this, s] { choose(s); };
         slots_[(size_t)s].on_menu = [this, s] { show_menu(s); };
+        slots_[(size_t)s].on_drag = [this, s]
+        {
+            auto* container = juce::DragAndDropContainer::findParentDragContainerFor(this);
+            if (container != nullptr && !container->isDragAndDropActive())
+                container->startDragging(bank_ * PATTERNS_PER_BANK + s, &slots_[(size_t)s]);
+        };
         addAndMakeVisible(slots_[(size_t)s]);
     }
     for (int b = 0; b < BANKS; ++b)
@@ -29,6 +36,12 @@ PatternsView::PatternsView(HandPanProcessor& processor) : processor_(processor)
         button.onClick = [this, b] { show_bank(b); };
         addAndMakeVisible(button);
     }
+    midi_mode_.addItemList(juce::StringArray(plugin::MIDI_MODE_CHOICES[0], plugin::MIDI_MODE_CHOICES[1]), 1);
+    midi_mode_.setTooltip("What the MIDI keys play: notes, or the patterns (from C1: A1 to D16), each from the next "
+                          "bar line while its key is held");
+    midi_mode_attachment_ = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+        processor_.parameters(), plugin::PARAM_MIDI_MODE, midi_mode_);
+    addAndMakeVisible(midi_mode_);
     bank_ = processor_.library().current().bank;
     refresh();
 }
@@ -44,10 +57,12 @@ void PatternsView::choose(int slot) { processor_.select_pattern({bank_, slot}); 
 void PatternsView::refresh()
 {
     const PatternLibrary& library = processor_.library();
+    const int playing = processor_.shown_pattern();
     for (int s = 0; s < PATTERNS_PER_BANK; ++s)
     {
         const SlotId id{bank_, s};
-        slots_[(size_t)s].show(s + 1, juce::String(library.name(id)), library.used(id), library.current() == id);
+        slots_[(size_t)s].show(s + 1, juce::String(library.name(id)), library.used(id), library.current() == id,
+                               playing == bank_ * PATTERNS_PER_BANK + s);
     }
     for (int b = 0; b < BANKS; ++b)
         banks_[(size_t)b].setToggleState(b == bank_, juce::dontSendNotification);
@@ -110,6 +125,8 @@ void PatternsView::resized()
 {
     auto area = getLocalBounds();
     auto bank_row = area.removeFromBottom(DIMENSIONS.button_height);
+    area.removeFromBottom(SPACING.lg);
+    midi_mode_.setBounds(area.removeFromBottom(DIMENSIONS.field_height));
     area.removeFromBottom(SPACING.lg);
     const int bank_width = (bank_row.getWidth() - (BANKS - 1) * SPACING.sm) / BANKS;
     for (auto& button : banks_)

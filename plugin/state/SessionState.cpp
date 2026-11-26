@@ -69,8 +69,47 @@ PatternSlot SessionState::read_slot(const juce::ValueTree& tree)
     return slot;
 }
 
-void SessionState::write(juce::ValueTree& tree, const PatternLibrary& library, const PlayerHands& hands)
+juce::ValueTree SessionState::write_arrangement(const Arrangement& arrangement)
 {
+    juce::ValueTree tree(state::ARRANGEMENT);
+    for (const ArrangementBlock& block : arrangement.blocks)
+    {
+        juce::ValueTree saved(state::BLOCK);
+        saved.setProperty(state::REST, block.rest, nullptr)
+            .setProperty(state::BANK, block.slot.bank, nullptr)
+            .setProperty(state::INDEX, block.slot.slot, nullptr)
+            .setProperty(state::COUNT, block.count, nullptr)
+            .setProperty(state::NUMERATOR, block.signature.numerator, nullptr)
+            .setProperty(state::DENOMINATOR, block.signature.denominator, nullptr);
+        tree.appendChild(saved, nullptr);
+    }
+    return tree;
+}
+
+Arrangement SessionState::read_arrangement(const juce::ValueTree& tree)
+{
+    Arrangement arrangement;
+    for (const auto& saved : tree)
+    {
+        if (!saved.hasType(state::BLOCK))
+            continue;
+        ArrangementBlock block;
+        block.rest = saved.getProperty(state::REST);
+        block.slot = {(int)saved.getProperty(state::BANK), (int)saved.getProperty(state::INDEX)};
+        block.count = juce::jlimit(1, BLOCK_COUNT_MAX, (int)saved.getProperty(state::COUNT, 1));
+        block.signature.numerator = juce::jmax(1, (int)saved.getProperty(state::NUMERATOR, block.signature.numerator));
+        block.signature.denominator =
+            juce::jmax(1, (int)saved.getProperty(state::DENOMINATOR, block.signature.denominator));
+        if (block.rest || PatternLibrary::valid(block.slot))
+            arrangement.blocks.push_back(block);
+    }
+    return arrangement;
+}
+
+void SessionState::write(juce::ValueTree& tree, const PatternLibrary& library, const Arrangement& arrangement,
+                         const PlayerHands& hands)
+{
+    tree.appendChild(write_arrangement(arrangement), nullptr);
     juce::ValueTree saved(state::LIBRARY);
     saved.setProperty(state::CURRENT_BANK, library.current().bank, nullptr)
         .setProperty(state::CURRENT_SLOT, library.current().slot, nullptr);
@@ -87,8 +126,14 @@ void SessionState::write(juce::ValueTree& tree, const PatternLibrary& library, c
     tree.appendChild(player, nullptr);
 }
 
-void SessionState::read(juce::ValueTree& tree, PatternLibrary& library, PlayerHands& hands)
+void SessionState::read(juce::ValueTree& tree, PatternLibrary& library, Arrangement& arrangement, PlayerHands& hands)
 {
+    const juce::ValueTree song = tree.getChildWithName(state::ARRANGEMENT);
+    if (song.isValid())
+    {
+        arrangement = read_arrangement(song);
+        tree.removeChild(song, nullptr);
+    }
     const juce::ValueTree saved = tree.getChildWithName(state::LIBRARY);
     if (saved.isValid())
     {

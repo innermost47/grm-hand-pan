@@ -45,6 +45,9 @@ constexpr int BANKS = 4;
 constexpr int PATTERNS_PER_BANK = 16;
 constexpr int BAR_CHOICES[] = {1, 2, 3, 4, 6, 8, 12, 16};
 
+// ---- the arrangement: the most times a block plays (or bars it rests)
+constexpr int BLOCK_COUNT_MAX = 16;
+
 // ---- the changes the roll can undo
 constexpr int HISTORY_LIMIT = 200;
 

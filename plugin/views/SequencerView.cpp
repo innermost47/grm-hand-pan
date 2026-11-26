@@ -10,6 +10,7 @@
 #include "../../core/note_names.hpp"
 #include "../../core/pattern_compiler.hpp"
 #include "../../core/pattern_editor.hpp"
+#include "../services/AudioExporter.h"
 #include "../style/HandPanLookAndFeel.h"
 #include "../style/Typefaces.h"
 
@@ -51,6 +52,9 @@ SequencerView::SequencerView(HandPanProcessor& processor) : processor_(processor
         case RollToolbar::count:
             clear();
             break;
+        case RollToolbar::export_audio:
+            AudioExporter::choose_and_export(processor_, AudioExporter::What::pattern);
+            break;
         }
     };
     addAndMakeVisible(toolbar_);
@@ -73,7 +77,7 @@ void SequencerView::reload()
     if (processor_.library().current() != shown_slot_)
     {
         shown_slot_ = processor_.library().current();
-        history_ = PatternHistory{};
+        history_ = History<Pattern>{};
         selection_.clear();
         glow_.clear();
         bottom_ = 0.0;
@@ -125,7 +129,8 @@ int SequencerView::playing_step() const
     const Pattern& p = processor_.pattern();
     if (!transport.shown_playing() && transport.shown_beat() <= 0.0)
         return -1;
-    const double in_pattern = std::fmod(transport.shown_beat(), p.length_beats());
+    const double beat = transport.shown_beat();
+    const double in_pattern = std::fmod(std::max(0.0, beat - processor_.pattern_origin(beat)), p.length_beats());
     return std::clamp((int)std::floor(in_pattern / p.step_beats() + 1e-9), 0, p.step_count() - 1);
 }
 
@@ -192,7 +197,8 @@ void SequencerView::resized()
     auto area = getLocalBounds();
     auto header = area.removeFromTop(DIMENSIONS.roll_header);
     left_handed_.setBounds(header.removeFromRight(DIMENSIONS.lap_switch_width));
-    toolbar_.setBounds(header.removeFromLeft(toolbar_.preferred_width()));
+    header.removeFromRight(SPACING.lg);
+    toolbar_.setBounds(header.removeFromLeft(std::min(toolbar_.preferred_width(), header.getWidth())));
     names_area_ = area.removeFromBottom(DIMENSIONS.roll_names);
     left_gutter_ = area.removeFromLeft(DIMENSIONS.roll_gutter);
     right_gutter_ = area.removeFromRight(DIMENSIONS.roll_gutter);

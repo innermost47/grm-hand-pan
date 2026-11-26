@@ -9,14 +9,15 @@
 
 using namespace grmh::ui;
 
-void PatternSlotButton::show(int number, const juce::String& name, bool used, bool current)
+void PatternSlotButton::show(int number, const juce::String& name, bool used, bool current, bool playing)
 {
-    if (number == number_ && name == name_ && used == used_ && current == current_)
+    if (number == number_ && name == name_ && used == used_ && current == current_ && playing == playing_)
         return;
     number_ = number;
     name_ = name;
     used_ = used;
     current_ = current;
+    playing_ = playing;
     repaint();
 }
 
@@ -30,11 +31,11 @@ void PatternSlotButton::paint(juce::Graphics& g)
         g.setColour(HandPanLookAndFeel::colour(COLORS.text).withAlpha(OPACITY.hover));
         g.fillRoundedRectangle(area, BORDERS.corner);
     }
-    g.setColour(HandPanLookAndFeel::colour(current_ ? COLORS.accent : COLORS.line));
-    g.drawRoundedRectangle(area, BORDERS.corner, current_ ? BORDERS.ring : BORDERS.hairline);
+    g.setColour(HandPanLookAndFeel::colour(playing_ ? COLORS.playing : (current_ ? COLORS.accent : COLORS.line)));
+    g.drawRoundedRectangle(area, BORDERS.corner, playing_ || current_ ? BORDERS.ring : BORDERS.hairline);
 
     auto text = getLocalBounds().reduced(SPACING.md, 0);
-    g.setColour(HandPanLookAndFeel::colour(COLORS.muted));
+    g.setColour(HandPanLookAndFeel::colour(playing_ ? COLORS.playing : COLORS.muted));
     g.setFont(Typefaces::get().interface(TYPOGRAPHY.caption, Typefaces::Weight::light));
     g.drawText(juce::String(number_), text.removeFromLeft(DIMENSIONS.slot_number), juce::Justification::centredLeft);
     if (used_)
@@ -48,6 +49,12 @@ void PatternSlotButton::paint(juce::Graphics& g)
     g.setColour(HandPanLookAndFeel::colour(current_ ? COLORS.accent : (used_ ? COLORS.text : COLORS.text_dim)));
     g.setFont(Typefaces::get().interface(TYPOGRAPHY.label));
     g.drawText(name_, text, juce::Justification::centredLeft, true);
+}
+
+void PatternSlotButton::mouseDrag(const juce::MouseEvent& event)
+{
+    if (!event.mods.isPopupMenu() && event.getDistanceFromDragStart() > SPACING.md && on_drag)
+        on_drag();
 }
 
 void PatternSlotButton::mouseDown(const juce::MouseEvent& event)

@@ -20,7 +20,7 @@
 #include <functional>
 #include <vector>
 
-#include "../../core/pattern_history.hpp"
+#include "../../core/history.hpp"
 #include "../../core/roll_geometry.hpp"
 #include "../HandPanProcessor.h"
 #include "../JuceHeader.h"
@@ -117,7 +117,7 @@ private:
     std::vector<int> selection_; // the selected hits' indices
     std::vector<grmh::PatternHit> clipboard_;
     int paste_step_ = 0; // the step last clicked
-    grmh::PatternHistory history_;
+    grmh::History<grmh::Pattern> history_;
     Drag drag_ = Drag::none;
     grmh::Pattern before_gesture_, drag_base_; // the pattern before the gesture (undo), the one it computes from
     int anchor_ = -1;                          // the hit the gesture began on

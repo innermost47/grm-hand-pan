@@ -8,12 +8,13 @@
 #include "HandPanProcessor.h"
 #include "JuceHeader.h"
 #include "style/HandPanLookAndFeel.h"
+#include "views/ArrangerView.h"
 #include "views/PatternsView.h"
 #include "views/SequencerView.h"
 #include "views/TopBar.h"
 #include "widgets/Panel.h"
 
-class HandPanEditor : public juce::AudioProcessorEditor
+class HandPanEditor : public juce::AudioProcessorEditor, public juce::DragAndDropContainer // patterns to the arranger
 {
 public:
     explicit HandPanEditor(HandPanProcessor& processor);
@@ -25,6 +26,7 @@ public:
     TopBar& top_bar() { return top_bar_; }             // for tests
     SequencerView& sequencer_view() { return roll_; }   // for tests
     PatternsView& patterns_view() { return bank_; }     // for tests
+    ArrangerView& arranger_view() { return song_; }     // for tests
 
 private:
     HandPanLookAndFeel look_; // declared first: outlives the widgets that draw through it
@@ -32,6 +34,7 @@ private:
     Panel patterns_{"Patterns"}, sequencer_{"Sequencer"}, arranger_{"Arranger"};
     SequencerView roll_;
     PatternsView bank_;
+    ArrangerView song_;
     juce::TooltipWindow tooltips_{this};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HandPanEditor)

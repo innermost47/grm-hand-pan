@@ -10,6 +10,8 @@
 #include <thread>
 
 #include "../constants/plugin.hpp"
+#include "../core/arrangement_editor.hpp"
+#include "../plugin/services/AudioExporter.h"
 #include "../constants/scales.hpp"
 #include "../plugin/HandPanProcessor.h"
 #include "support/test_report.hpp"
@@ -114,6 +116,79 @@ int main()
     std::printf("  ding at -20 dB: %.1f dB under\n", 20.0 * std::log10(ding.peak / quiet.peak));
     report.expect(std::fabs(20.0 * std::log10(ding.peak / quiet.peak) - 20.0) < 0.5, "V at -20 dB: 20 dB quieter");
     volume->setValueNotifyingHost(volume->convertTo0to1(0.0f));
+
+    // keys play patterns: C1 + 1 plays the pattern A2 from the bar line, let go it stops; a key below C1 adds nothing
+    plugin.set_pattern(Pattern{});
+    PatternSlot second;
+    second.pattern = pattern; // a ding on its first step
+    plugin.set_slot({0, 1}, second);
+    auto* mode = plugin.parameters().getParameter(grmh::plugin::PARAM_MIDI_MODE);
+    mode->setValueNotifyingHost(mode->convertTo0to1((float)grmh::plugin::MIDI_MODE_PATTERNS));
+    play(plugin, -1, 0, 400);
+    plugin.transport().stop();
+    plugin.transport().play();
+    const Heard keyed = play(plugin, grmh::plugin::PATTERN_KEY_FIRST + 1, 100, 40);
+    report.expect(keyed.finite && keyed.peak > 1e-3 && plugin.shown_pattern() == 1,
+                  "keys play patterns: C#1 held, the pattern A2 plays from the bar line");
+    {
+        juce::AudioBuffer<float> buffer(2, BLOCK);
+        juce::MidiBuffer off;
+        off.addEvent(juce::MidiMessage::noteOff(1, grmh::plugin::PATTERN_KEY_FIRST + 1), 0);
+        plugin.processBlock(buffer, off);
+    }
+    report.expect(plugin.shown_pattern() == -1, "the key let go: the pattern stops");
+    play(plugin, -1, 0, 400);
+    const Heard below = play(plugin, grmh::plugin::PATTERN_KEY_FIRST - 6, 100, 10);
+    report.expect(below.peak < 0.05 * ding.peak, "keys play patterns: a key below C1 strikes nothing");
+    plugin.transport().stop();
+    mode->setValueNotifyingHost(mode->convertTo0to1((float)grmh::plugin::MIDI_MODE_NOTES));
+
+    // the song: a bar of silence, then A2 (a ding on its first step): silent first, the ding on the second bar
+    Arrangement arrangement;
+    ArrangementEditor::add_rest(arrangement);
+    ArrangementEditor::add_pattern(arrangement, {0, 1});
+    plugin.set_arrangement(arrangement);
+    auto* song = plugin.parameters().getParameter(grmh::plugin::PARAM_SONG);
+    song->setValueNotifyingHost(1.0f);
+    play(plugin, -1, 0, 400);
+    plugin.transport().stop();
+    plugin.transport().play();
+    const int bar_blocks = (int)(4.0 * 60.0 / TEMPO_DEFAULT * RATE / BLOCK); // whole blocks within the first bar
+    const Heard rest = play(plugin, -1, 0, bar_blocks);
+    const Heard second_bar = play(plugin, -1, 0, 40);
+    std::printf("  song: first bar %.1f dBFS, second bar %.1f dBFS\n", 20.0 * std::log10(rest.peak + 1e-30),
+                20.0 * std::log10(second_bar.peak + 1e-30));
+    report.expect(rest.peak < 0.05 * second_bar.peak && second_bar.peak > 1e-3,
+                  "Song on: the first bar is silent (what still rings aside), the ding sounds on the second");
+    plugin.transport().stop();
+    song->setValueNotifyingHost(0.0f);
+
+    // the song exported to a WAV file and read back: stereo, its length and its ringing, not silent
+    {
+        const auto sound = plugin.sound_model();
+        const CompiledPattern compiled = plugin.compiled_song();
+        const double tempo = plugin.played_tempo();
+        const auto audio = AudioExporter::render(*sound, compiled, tempo, plugin.output_gain());
+        const juce::File file = juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                    .getChildFile("grm_hand_pan_export_test.wav");
+        const bool written = AudioExporter::write(file, audio, sound->sample_rate);
+        juce::AudioFormatManager formats;
+        formats.registerBasicFormats();
+        std::unique_ptr<juce::AudioFormatReader> reader(formats.createReaderFor(file));
+        const double expected = compiled.length_beats * 60.0 / tempo + grmh::plugin::TAIL_SECONDS;
+        bool loud = false;
+        if (reader != nullptr)
+        {
+            juce::AudioBuffer<float> back(2, (int)reader->lengthInSamples);
+            reader->read(&back, 0, back.getNumSamples(), 0, true, true);
+            loud = back.getMagnitude(0, back.getNumSamples()) > 1e-3f;
+        }
+        report.expect(written && reader != nullptr && reader->numChannels == 2 && reader->bitsPerSample == 24 &&
+                          std::fabs(reader->lengthInSamples / reader->sampleRate - expected) < 0.01 && loud,
+                      "the song exported: a 24-bit stereo WAV, its length plus the ringing, not silent");
+        reader.reset();
+        file.deleteFile();
+    }
 
     // stop and play again
     plugin.releaseResources();

@@ -5,8 +5,11 @@ long, how the air in the shell answers, how a fingertip strikes, how the fields 
 network**: physical relations solved against published measurements, each with its uncertainty. No samples, no
 filter tuned by ear. Free software under the AGPL-3.0.
 
-This is a **proof of concept**: a D Kurd handpan, played from MIDI in a minimal VST3 / standalone plugin (JUCE), or
-rendered to WAV files without a host.
+![GRM Hand Pan playing: the patterns on the left, the Hand Pan Roll in the middle, the arranger on the right](docs/images/hand-pan-roll.png)
+
+A D Kurd handpan in a VST3 / standalone plugin (JUCE), with its own sequencer, the **Hand Pan Roll**: draw strikes
+on the instrument's fields, two hands at a time, and play them in patterns and songs. Or play it from MIDI. It is
+still a young instrument (version 0.1): one scale, one way of striking.
 
 ## Audio examples
 
@@ -22,11 +25,42 @@ Rendered by the model alone, straight from `tools/` (no effect, no reverb, nothi
 
 ## Download and play
 
-The plugin is built from the sources (see below). In a DAW: load **GRM Hand Pan** (VST3) on an instrument track and
-play it from a MIDI keyboard or a clip. Each note-on strikes the field tuned to that note, **D3 A3 Bb3 C4 D4 E4 F4 G4
-A4**, at its velocity; note-offs are ignored (a handpan rings until it fades); other notes are silent. Two settings:
-**On the lap** and **Stereo width**. The first time it loads, the instrument calibrates itself on its measurements: it
-stays silent for about 15 seconds, then plays.
+Builds for **Windows** and **Linux** (VST3 and standalone) are attached to each
+[release](https://github.com/innermost47/grm-hand-pan/releases); see below to build it yourself.
+
+- **Windows**: copy the `GRM Hand Pan.vst3` folder to `C:\Program Files\Common Files\VST3` and rescan your plugins,
+  or run `GRM Hand Pan.exe` and choose your audio device and MIDI input in its settings.
+- **Linux**: copy the `GRM Hand Pan.vst3` folder to `~/.vst3`, or run the standalone `GRM Hand Pan`.
+
+The first time it loads, the instrument calibrates itself on its measurements: it stays silent for about 15 seconds,
+then plays.
+
+### The Hand Pan Roll
+
+- **The sequencer**, in the middle, is read from the bottom up: one line a step, each line the instrument's fields
+  in an arc, the ding in the middle, the others alternating right and left as the scale rises. The lines of the bar's
+  first beat, of the beats and of the off-beats stand out; the step playing lights its LED, and the notes that play
+  glow.
+- **Drawing**: click a field to put a strike there, and drag up or down to set how hard; drag a strike to make it
+  louder or softer at any time. Ctrl + drag moves the selection, Ctrl + drag from elsewhere draws a selection
+  rectangle, Ctrl + click adds a strike to the selection; a double-click removes one; a right click chooses its hand.
+  Two strikes on one field at one step are a **flam**; a third strike at a step is refused: a player has two hands.
+  The usual shortcuts work: Ctrl + A, C, X, V, D (clone), Z, Shift + Z or Y, Delete, Escape.
+- **Two hands**: each strike is played by the hand of its side, the fields in the middle in turn, pink for the right
+  hand, blue for the left; a left-hander's switch mirrors the roll.
+- **Patterns**, on the left: four banks (A to D) of sixteen patterns, each with its name, its time signature and its
+  length (1 to 16 bars); a right click renames, copies, pastes or clears one.
+- **The arranger**, on the right: the song as blocks read from the top down, each a pattern played a number of times
+  (its letter picks the variation, A2 to B2...) or a silence in the signature you choose. Drag a pattern in from the
+  left, drag a block to move it, Ctrl + Z to undo. **Song** plays it instead of the pattern being edited.
+- **MIDI**: by default the keys play notes (**D3 A3 Bb3 C4 D4 E4 F4 G4 A4**, each at its velocity; other notes are
+  silent). Switched to **Keys play patterns**, the 64 keys from C1 (middle C = C3) play the 64 patterns, bank after
+  bank, each from the next bar line while its key is held.
+- **Export**: the pattern being edited, or the song, to a 24-bit stereo WAV file.
+- **Settings**: the volume (V), the stereo width (W), the instrument **on the lap** (on by default), the tempo (in
+  the standalone; in a host, the host's).
+
+Everything (patterns, song, hands) is saved with your project.
 
 ## Status
 
@@ -39,9 +73,10 @@ stays silent for about 15 seconds, then plays.
 | Sympathetic fields: neighbours that sing and beat | done |
 | The finger's click above the modes (plate theory) | done |
 | Stereo: each field heard from where it sits on the instrument | done |
-| Minimal VST3 / standalone plugin (MIDI in, generic editor) | done |
+| VST3 / standalone plugin, MIDI notes or patterns | done |
+| The Hand Pan Roll: sequencer, two hands, flams, patterns, arranger, WAV export | done |
 | A sharper finger attack, matched to finger recordings | next |
-| The Hand Pan Roll: a circular sequencer, strike zones, pattern bank | after |
+| Other scales, playing gestures (palm, muted, harmonics), the room | later |
 
 ## How it sounds the way it does
 
@@ -76,13 +111,33 @@ something changes, never in the audio callback; their results are plain data tha
 - **Stereo**: the ding sits in the middle, the lowest field of the ring in front of the player (struck with the right
   hand), then the scale goes up left, right, left... the highest at the back. Each field, and its click, is heard
   from its side; the stereo width is a setting.
+- **The two hands** strike alike by default: the dominant hand grips harder (12.7 % in right-handers), but a grip is
+  not a tap, and trained percussionists' hands grow alike. The weaker hand's speed is a setting of the model.
+
+## For developers: building your own instrument with the GRM
+
+This project is built exactly like GRM Guitar, and its **developer documentation** is the way in:
+**[GRM Guitar's docs](https://github.com/innermost47/grm-guitar-vst/tree/main/docs)**.
+
+- [The GRM in practice](https://github.com/innermost47/grm-guitar-vst/blob/main/docs/grm.md): what a GRM network
+  is, with an example that runs.
+- [Architecture](https://github.com/innermost47/grm-guitar-vst/blob/main/docs/architecture.md): how networks become
+  sound in real time (solver thread, lock-free mailbox, modal engine), the pattern this handpan follows.
+- [Your own plugin with cppgrm](https://github.com/innermost47/grm-guitar-vst/blob/main/docs/your-own-plugin.md):
+  start your own virtual instrument or effect on the GRM.
+- [Contributing](https://github.com/innermost47/grm-guitar-vst/blob/main/docs/contributing.md): how settings,
+  networks and tests are added.
+
+Here, the networks of a handpan are in `core/` (`handpan_networks.hpp`, `cavity_network.hpp`,
+`strike_network.hpp`, `participation_network.hpp`, `sympathy_network.hpp`), their measured data with their sources in
+`constants/`, and each one is checked against its measurements in `tests/`.
 
 ## Build
 
 You need **CMake 3.22+**, **Git** and a **C++17 compiler**. CMake downloads everything else: the GRM engine
-([cppgrm](https://github.com/innermost47/cppgrm), one header) and [JUCE](https://juce.com) 8 for the plugin. It has
-been built and tested on **Windows** (Visual Studio 2022); JUCE also builds on macOS and Linux, but this project has
-not been tried there yet.
+([cppgrm](https://github.com/innermost47/cppgrm), one header) and [JUCE](https://juce.com) 8 for the plugin. It is
+built on **Windows** (Visual Studio 2022) and **Linux**; JUCE also builds on macOS, but this project has not been
+tried there yet.
 
 ### Windows
 
@@ -103,7 +158,7 @@ The first configure downloads JUCE (a few minutes). Then:
 - the **standalone** is `build\GRMHandPan_artefacts\Release\Standalone\GRM Hand Pan.exe`: open it, choose your audio
   device and MIDI input in its settings.
 
-### macOS and Linux (untried)
+### Linux (and macOS, untried)
 
 ```sh
 git clone https://github.com/innermost47/grm-hand-pan.git
@@ -113,13 +168,14 @@ cmake --build build -j
 ```
 
 On Linux, JUCE needs its usual development packages (ALSA, X11, Freetype... see JUCE's
-[Linux dependencies](https://github.com/juce-framework/JUCE/blob/master/docs/Linux%20Dependencies.md)). Reports of
-how it goes are welcome.
+[Linux dependencies](https://github.com/juce-framework/JUCE/blob/master/docs/Linux%20Dependencies.md)). The VST3 is
+`build/GRMHandPan_artefacts/Release/VST3/GRM Hand Pan.vst3` (copy it to `~/.vst3`), the standalone
+`build/GRMHandPan_artefacts/Release/Standalone/GRM Hand Pan`.
 
 ### Tests and offline renders
 
 Add `-DGRMH_BUILD_TESTS=ON` to the configure line to build the tests and the tools (`-DGRMH_BUILD_PLUGIN=OFF` skips
-JUCE and the plugin):
+JUCE and the plugin, and the tests that need it):
 
 ```bat
 cmake -B build -DGRMH_BUILD_TESTS=ON
@@ -134,11 +190,13 @@ mkdir renders
 build\Release\render_scale renders\handpan_d_kurd.wav
 build\Release\render_melody renders\handpan_melody.wav
 build\Release\render_melody renders\handpan_melody_lap.wav --lap
+build\Release\render_editor renders\editor.png
 ```
 
 - `render_scale`: a D Kurd up and down its scale, the ding soft to loud, a chord.
 - `render_melody`: a short piece, the ding as a pulse, rolls, flams, a sung phrase; `--lap` holds the instrument on
   the lap (the air mode drops from 85 to 74 Hz).
+- `render_editor` and `render_design_system`: the plugin's window, and its design system, as PNG images.
 
 The renderings are stereo. The other tools: `measure_recordings <folder> <notes...>` measures recorded notes against
 the model with the meter of the tests, `probe_sympathy` shows how the sympathy network sees its unknown,
@@ -162,16 +220,28 @@ error before it was kept.
 | `sympathetic_fields` | energy kept by the exchange, the coupling against its measurements, the beatings |
 | `finger_click` | the contact pulse, Newton over a baffle, the click left to the modes below them, louder is brighter |
 | `field_layout` | where the fields sit and sound, constant-power stereo gains |
-| `plugin_as_hosted` | the plugin called as a host would: silent while it solves, MIDI to sound, stereo, stop and play again, state |
+| `pattern_sequencer` | the grid, a circle as a velocity, the two hands, the weak hand, flams, the loop whatever the host's blocks |
+| `transport_clock` | the host's clock or the plugin's own (play, pause, stop), the strikes of a block, bar.beat.step |
+| `roll_layout` | the fields in an arc, mirrored for a left-hander, lines that never overlap, note names |
+| `pattern_editing` | two strikes a step at most, moving and resizing a selection, copy, paste, clone, undo |
+| `pattern_library` | the banks, a pattern's length and signature |
+| `pattern_player` | a pattern asked for starts on the next bar line, let go it stops, whatever the host's blocks |
+| `arrangement` | the song's blocks one after the other, repeats, silences in any signature, played once |
+| `design_system` | the typefaces, text contrast (WCAG), the two hands' colours |
+| `plugin_as_hosted` | the plugin called as a host would: MIDI to sound, stereo, the roll, the volume, keys playing patterns, the song, the WAV export, state |
+| `plugin_editor` | the window: knobs and parameters, the transport, drawing with the mouse and the shortcuts, the banks, the arranger, the session saved bit for bit |
 
 ## Layout
 
 - `constants/`: the measured data, each value with its source and its spread (the spread is its sigma in the
-  networks), and the choices that are not measurements (listening distance, full scale, MIDI velocity curve).
+  networks), the choices that are not measurements (listening distance, full scale, MIDI velocity curve), and the
+  design system (`theme.hpp`, `sizes.hpp`).
 - `models/`: the structs that travel between the parts.
-- `core/`: the networks, the model, the real-time engine (voices, cavity, sympathy), the offline renderer. No JUCE:
-  everything is tested and rendered without a host.
-- `plugin/`: the JUCE plugin, thin: parameters, MIDI, the solver thread, the engine in `processBlock`.
+- `core/`: the networks, the model, the real-time engine (voices, cavity, sympathy), the sequencer (patterns, hands,
+  transport, arrangement), the offline renderer. No JUCE: everything is tested and rendered without a host.
+- `plugin/`: the JUCE plugin: the processor (parameters, MIDI, the solver thread, the engine in `processBlock`), its
+  look and feel, views and widgets, the session's state, the WAV export.
+- `assets/fonts/`: the interface's typefaces. `design/`: the mock-ups the interface comes from.
 - `tools/`: renderers and measuring tools. `tests/`: one test per part.
 
 ## Sources
@@ -193,6 +263,8 @@ error before it was kept.
   Lyon 1 (2016): the fingertip pulp measured by MRI.
 - C. Xu, "Modal Synthesis of the Handpan Sound", MUMT 307, McGill University (2022): the recorded notes the strike is
   calibrated on (their levels are in `constants/recordings.hpp`; the recordings themselves are not redistributed).
+- Petersen et al., "Grip strength and hand dominance: challenging the 10% rule", Am. J. Occup. Ther. (1989). Fujii et
+  al., "Tapping speed asymmetry in drummers for single-hand tapping with a stick" (2006): the two hands.
 
 ## The GRM family
 
@@ -201,11 +273,15 @@ error before it was kept.
 - **[cppgrm](https://github.com/innermost47/cppgrm)**: the GRM engine, one C++17 header with no dependency.
 - **[pygrm](https://pypi.org/project/pygrm/)**: the same engine as a Python package.
 - **[GRM Guitar](https://github.com/innermost47/grm-guitar-vst)**: a guitar built the same way, whose architecture
-  this project follows.
+  and developer documentation this project follows.
 
 ## License
 
 AGPL-3.0-or-later, see [LICENSE](LICENSE).
+
+The interface's typefaces, [Zen Kaku Gothic New](https://github.com/googlefonts/zen-kakugothic) and
+[Shippori Mincho](https://github.com/fontdasu/ShipporiMincho), are under the SIL Open Font License 1.1
+(`assets/fonts/`, reduced to their Latin glyphs, with their licenses).
 
 Hang® is a registered trademark of PANArt Hangbau AG. This project models the handpan family of instruments; it is
 not affiliated with or endorsed by PANArt.

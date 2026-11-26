@@ -3,6 +3,7 @@
 //
 // The plugin's editor as a host opens it, a short pattern in its roll (the ding as a pulse, answers on both sides, a
 // flam, ghost notes), saved as a PNG for Anthony to look at. Usage: render_editor [out.png]
+#include "../core/arrangement_editor.hpp"
 #include "../plugin/HandPanEditor.h"
 #include "png_capture.hpp"
 
@@ -54,8 +55,18 @@ int main(int argc, char** argv)
     processor.set_pattern(demo_pattern());
     processor.set_slot({0, 1}, {"Verse", demo_pattern()});
     processor.set_slot({0, 2}, {"Fill", demo_pattern()});
+    grmh::Arrangement song;
+    grmh::ArrangementEditor::add_pattern(song, {0, 0});
+    grmh::ArrangementEditor::set_count(song, 0, 2);
+    grmh::ArrangementEditor::add_pattern(song, {0, 1});
+    grmh::ArrangementEditor::add_pattern(song, {1, 1}); // Verse's variation B
+    grmh::ArrangementEditor::add_rest(song);
+    grmh::ArrangementEditor::add_pattern(song, {0, 2});
+    processor.set_arrangement(song);
     play_to(processor, 3.0); // the third beat: the flam on E4 glows
     std::unique_ptr<juce::AudioProcessorEditor> editor(processor.createEditor());
-    dynamic_cast<HandPanEditor&>(*editor).sequencer_view().refresh();
+    auto& window = dynamic_cast<HandPanEditor&>(*editor);
+    window.arranger_view().refresh();
+    window.sequencer_view().refresh();
     return grmh::tools::capture_png(*editor, argc > 1 ? argv[1] : nullptr, "renders/editor.png");
 }

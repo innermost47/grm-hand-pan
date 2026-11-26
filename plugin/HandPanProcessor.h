@@ -1,17 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Anthony Charretier
 //
-// The plugin: a D Kurd handpan played from MIDI and from its own roll. Each note-on strikes the field tuned to it, at
-// its velocity, to the sample; note-offs are ignored (a handpan rings until it fades). The roll's pattern plays along
-// the song (the host's clock, or the plugin's own), its strikes to the sample too. The sound model comes from the
+// The plugin: a D Kurd handpan played from MIDI and from its own roll. Keys play notes (the MIDI mode by default):
+// each note-on strikes the field tuned to it, at its velocity, to the sample; note-offs are ignored (a handpan rings
+// until it fades); the pattern being edited plays along the song (the host's clock, or the plugin's own), its strikes
+// to the sample too. Keys play patterns: from C1, a key held plays its pattern from the next bar line, let go stops it.
+// Song on: the arranger's song plays instead, once, from the song's start. The sound model comes from the
 // solver thread, the compiled pattern from the interface, both through lock-free mailboxes; the audio thread never
 // allocates, locks or solves.
 #pragma once
 
+#include "../core/arrangement_compiler.hpp"
 #include "../core/block_strikes.hpp"
 #include "../core/engine.hpp"
 #include "../core/mailbox.hpp"
 #include "../core/pattern_library.hpp"
+#include "../core/pattern_player.hpp"
 #include "../core/pattern_sequencer.hpp"
 #include "../core/transport.hpp"
 #include "JuceHeader.h"
@@ -72,6 +76,25 @@ public:
     const std::vector<int>& notes() const { return notes_; }
     // message thread: a note heard now (a hit just drawn), struck at the next block's start
     void audition(int note, int velocity);
+    // the pattern a MIDI key plays (bank * PATTERNS_PER_BANK + slot), -1: none (for the views)
+    int shown_pattern() const { return shown_pattern_.load(); }
+
+    // message thread: the song (the arranger's blocks), and a new one; whether the song plays (the "Song" switch);
+    // where the blocks lie in the song; the song's beat where the pattern being edited started, for the roll's
+    // playhead (0 out of the song)
+    const grmh::Arrangement& arrangement() const { return arrangement_; }
+    void set_arrangement(const grmh::Arrangement& arrangement);
+    bool song_mode() const;
+    std::vector<grmh::BlockSpan> song_spans() const;
+    double pattern_origin(double beat) const;
+
+    // message thread, to render offline: the instrument as last solved (null before), the pattern being edited and
+    // the song compiled, the tempo they play at (the host's last one, or the plugin's own), the volume's gain
+    std::shared_ptr<const grmh::SoundModel> sound_model() const { return solver_.shown_model(); }
+    grmh::CompiledPattern compiled_pattern() const { return compile(library_.pattern()); }
+    grmh::CompiledPattern compiled_song() const;
+    double played_tempo() const;
+    float output_gain() const;
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout create_layout();
@@ -86,16 +109,22 @@ private:
     grmh::Engine engine_;
     const grmh::SoundModel* playing_ = nullptr;
 
-    void compile_pattern(); // message thread: the pattern and the hands to the audio thread
+    void compile_library(); // message thread: the patterns, the song and the hands to the audio thread
+    grmh::CompiledPattern compile(const grmh::Pattern& pattern) const;
 
     std::vector<int> notes_;
     grmh::PatternLibrary library_;                   // message thread
+    grmh::Arrangement arrangement_;                  // message thread
     grmh::PlayerHands hands_;                        // message thread
     int pattern_version_ = 0;                        // message thread
-    grmh::Mailbox<grmh::CompiledPattern> patterns_;  // message thread -> audio thread
-    const grmh::CompiledPattern* playing_pattern_ = nullptr;
-    grmh::PatternSequencer sequencer_;
+    grmh::Mailbox<grmh::CompiledLibrary> libraries_; // message thread -> audio thread
+    const grmh::CompiledLibrary* playing_library_ = nullptr;
+    grmh::PatternPlayer player_; // the patterns the keys ask for
     grmh::BlockStrikes block_strikes_;
+    std::atomic<int> shown_pattern_{-1};
+    bool patterns_mode() const;
+    void read_pattern_keys(const juce::MidiBuffer& midi);
+    void gather_strikes(const grmh::ClockBlock& clock, int samples, bool song, bool keys_play_patterns);
     grmh::Transport transport_;
     std::atomic<double> shown_tempo_{0.0};
     double sample_rate_ = 0.0;

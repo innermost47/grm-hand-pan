@@ -58,6 +58,8 @@ struct Dimensions
     int slot_height = 34; // a pattern of a bank
     int slot_number = 22; // its number, before its name
     int bars_width = 96;  // the pattern's bar count, in the top bar
+    int block_count = 34; // a block's count ("×2", "2 bars"), between its − and +
+    int arranger_button = 84;
     int roll_names = 28;   // the fields' names, under it
     int roll_gutter = 36;  // bars and beats on the left, LEDs on the right
 };
