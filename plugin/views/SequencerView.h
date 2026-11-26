@@ -26,6 +26,16 @@ public:
     void resized() override;
     void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 
+    // drawing the hits: a click on a field puts a hit there (a drag up or down sizes it); a click on a hit selects it,
+    // a drag moves it on its field, Shift + drag sizes it; a double-click or Delete removes it; a right click chooses
+    // its hand. A second hit on a field at a step is a flam; a third hit at a step is refused (two hands). A hit drawn
+    // while the transport is still is heard.
+    void mouseDown(const juce::MouseEvent& event) override;
+    void mouseDrag(const juce::MouseEvent& event) override;
+    void mouseUp(const juce::MouseEvent& event) override;
+    void mouseDoubleClick(const juce::MouseEvent& event) override;
+    bool keyPressed(const juce::KeyPress& key) override;
+
     // scrolls `steps` up (later steps) or down, a step at least, within the pattern (the wheel's way)
     void scroll_by(double steps);
     // the step at the bottom line (for tests)
@@ -58,6 +68,24 @@ private:
     int shown_step_ = -1;               // the step playing, as last drawn
     std::vector<float> glow_;           // each hit's light
     double last_frame_ms_ = 0.0;
+
+    enum class Drag
+    {
+        none,
+        size,
+        move
+    };
+    int selected_ = -1; // the hit selected, -1: none
+    Drag drag_ = Drag::none;
+    double drag_start_y_ = 0.0, drag_start_size_ = 0.0;
+
+    grmh::RollPoint roll_point(const juce::MouseEvent& event) const; // in the roll's area
+    int hit_under(grmh::RollPoint point) const;                       // -1: none
+    bool field_under(grmh::RollPoint point, int& step, int& field) const;
+    int column_of(int field) const;
+    void edit(const std::function<void(grmh::Pattern&)>& change);
+    void hear(const grmh::PatternHit& hit);
+    void show_hand_menu(int hit);
 
     void light_step(int step); // the hits of a step that starts playing
     bool fade(double seconds); // true while something still glows

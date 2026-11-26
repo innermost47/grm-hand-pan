@@ -62,6 +62,24 @@ void HandPanProcessor::compile_pattern()
     patterns_.post(new CompiledPattern{PatternCompiler::compile(pattern_, notes_, hands_), pattern_.length_beats()});
 }
 
+void HandPanProcessor::audition(int note, int velocity)
+{
+    const auto scope = auditions_.write(1);
+    if (scope.blockSize1 > 0)
+        audition_strikes_[(size_t)scope.startIndex1] = {0, note, velocity};
+}
+
+void HandPanProcessor::play_auditions()
+{
+    const auto scope = auditions_.read(auditions_.getNumReady());
+    for (int i = 0; i < scope.blockSize1; ++i)
+        engine_.strike(audition_strikes_[(size_t)(scope.startIndex1 + i)].note,
+                       audition_strikes_[(size_t)(scope.startIndex1 + i)].velocity);
+    for (int i = 0; i < scope.blockSize2; ++i)
+        engine_.strike(audition_strikes_[(size_t)(scope.startIndex2 + i)].note,
+                       audition_strikes_[(size_t)(scope.startIndex2 + i)].velocity);
+}
+
 void HandPanProcessor::prepareToPlay(double sample_rate, int)
 {
     sample_rate_ = sample_rate;
@@ -137,6 +155,7 @@ void HandPanProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     const ClockBlock clock = transport_.advance(host_position(), own_tempo, sample_rate_, samples);
     shown_tempo_.store(clock.tempo);
     block_strikes_.gather(sequencer_, clock, samples);
+    play_auditions();
 
     int position = 0, next = 0;
     for (const auto event : midi)

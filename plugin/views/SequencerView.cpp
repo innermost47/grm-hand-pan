@@ -7,6 +7,8 @@
 #include "../../constants/sizes.hpp"
 #include "../../constants/theme.hpp"
 #include "../../core/hand_assignment.hpp"
+#include "../../core/pattern_compiler.hpp"
+#include "../../core/pattern_editor.hpp"
 #include "../../core/note_names.hpp"
 #include "../style/HandPanLookAndFeel.h"
 #include "../style/Typefaces.h"
@@ -36,7 +38,183 @@ SequencerView::SequencerView(HandPanProcessor& processor) : processor_(processor
         processor_.set_hands(hands);
     };
     addAndMakeVisible(left_handed_);
+    setWantsKeyboardFocus(true);
     reload();
+}
+
+RollPoint SequencerView::roll_point(const juce::MouseEvent& event) const
+{
+    return {event.position.x - (double)roll_area_.getX(), event.position.y - (double)roll_area_.getY()};
+}
+
+int SequencerView::column_of(int field) const
+{
+    return field >= 0 && field < (int)columns_.size() ? columns_[(size_t)field] : 0;
+}
+
+int SequencerView::hit_under(RollPoint point) const
+{
+    const RollGeometry geo = geometry();
+    const StepRange range = geo.visible(processor_.pattern().step_count());
+    const auto& hits = processor_.pattern().hits;
+    for (int i = (int)hits.size() - 1; i >= 0; --i) // the last drawn is on top
+    {
+        const PatternHit& h = hits[(size_t)i];
+        if (h.step < range.first || h.step > range.last)
+            continue;
+        const int column = column_of(h.field);
+        const RollPoint c = geo.hit_centre(h.step, column, h.x, h.y, h.size);
+        if (std::hypot(point.x - c.x, point.y - c.y) <= geo.hit_radius(column, h.size))
+            return i;
+    }
+    return -1;
+}
+
+bool SequencerView::field_under(RollPoint point, int& step, int& field) const
+{
+    const RollGeometry geo = geometry();
+    const StepRange range = geo.visible(processor_.pattern().step_count());
+    for (int s = range.first; s <= range.last; ++s)
+        for (size_t f = 0; f < columns_.size(); ++f)
+            if (geo.on_field(s, columns_[f], point))
+            {
+                step = s;
+                field = (int)f;
+                return true;
+            }
+    return false;
+}
+
+void SequencerView::edit(const std::function<void(Pattern&)>& change)
+{
+    Pattern pattern = processor_.pattern();
+    change(pattern);
+    processor_.set_pattern(pattern);
+    reload();
+}
+
+void SequencerView::hear(const PatternHit& hit)
+{
+    if (processor_.transport().shown_playing() || hit.field < 0 || hit.field >= (int)processor_.notes().size())
+        return;
+    processor_.audition(processor_.notes()[(size_t)hit.field], PatternCompiler::hit_velocity(hit.size));
+}
+
+void SequencerView::show_hand_menu(int hit)
+{
+    const HandChoice current = processor_.pattern().hits[(size_t)hit].hand;
+    juce::PopupMenu menu;
+    menu.addItem(1, "Hand: automatic", true, current == HandChoice::automatic);
+    menu.addItem(2, "Left hand", true, current == HandChoice::left);
+    menu.addItem(3, "Right hand", true, current == HandChoice::right);
+    menu.addSeparator();
+    menu.addItem(4, "Delete");
+    juce::Component::SafePointer<SequencerView> self(this);
+    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(this).withMousePosition(),
+                       [self, hit](int chosen)
+                       {
+                           if (self == nullptr || chosen == 0)
+                               return;
+                           if (chosen == 4)
+                           {
+                               self->edit([hit](Pattern& p) { PatternEditor::remove(p, hit); });
+                               self->selected_ = -1;
+                               return;
+                           }
+                           const HandChoice hands[] = {HandChoice::automatic, HandChoice::left, HandChoice::right};
+                           self->edit([hit, &hands, chosen](Pattern& p)
+                                      { PatternEditor::set_hand(p, hit, hands[chosen - 1]); });
+                       });
+}
+
+void SequencerView::mouseDown(const juce::MouseEvent& event)
+{
+    grabKeyboardFocus();
+    drag_ = Drag::none;
+    const RollPoint point = roll_point(event);
+    const int hit = hit_under(point);
+    if (hit >= 0)
+    {
+        selected_ = hit;
+        repaint();
+        if (event.mods.isPopupMenu())
+        {
+            show_hand_menu(hit);
+            return;
+        }
+        drag_ = event.mods.isShiftDown() ? Drag::size : Drag::move;
+        drag_start_y_ = event.position.y;
+        drag_start_size_ = processor_.pattern().hits[(size_t)hit].size;
+        return;
+    }
+    int step = 0, field = 0;
+    if (event.mods.isPopupMenu() || !field_under(point, step, field))
+    {
+        selected_ = -1;
+        repaint();
+        return;
+    }
+    PatternHit added;
+    added.step = step;
+    added.field = field;
+    added.size = HIT_SIZE_DEFAULT;
+    const RollPoint place = geometry().place_on_field(step, column_of(field), point, added.size);
+    added.x = place.x;
+    added.y = place.y;
+    int index = -1;
+    edit([&](Pattern& p) { index = PatternEditor::add(p, added); });
+    if (index < 0)
+        return; // two hits at this step already: two hands
+    selected_ = index;
+    drag_ = Drag::size;
+    drag_start_y_ = event.position.y;
+    drag_start_size_ = added.size;
+    hear(added);
+}
+
+void SequencerView::mouseDrag(const juce::MouseEvent& event)
+{
+    if (drag_ == Drag::none || selected_ < 0 || selected_ >= (int)processor_.pattern().hits.size())
+        return;
+    if (drag_ == Drag::size)
+    {
+        const double size = drag_start_size_ + (drag_start_y_ - event.position.y) / HIT_SIZE_DRAG_PIXELS;
+        edit([&](Pattern& p) { PatternEditor::resize(p, selected_, size); });
+        return;
+    }
+    const PatternHit& hit = processor_.pattern().hits[(size_t)selected_];
+    const RollPoint place = geometry().place_on_field(hit.step, column_of(hit.field), roll_point(event), hit.size);
+    edit([&](Pattern& p) { PatternEditor::move(p, selected_, place.x, place.y); });
+}
+
+void SequencerView::mouseUp(const juce::MouseEvent&)
+{
+    if (drag_ == Drag::size && selected_ >= 0 && selected_ < (int)processor_.pattern().hits.size() &&
+        processor_.pattern().hits[(size_t)selected_].size != drag_start_size_)
+        hear(processor_.pattern().hits[(size_t)selected_]); // its new loudness
+    drag_ = Drag::none;
+}
+
+void SequencerView::mouseDoubleClick(const juce::MouseEvent& event)
+{
+    const int hit = hit_under(roll_point(event));
+    if (hit < 0)
+        return;
+    edit([hit](Pattern& p) { PatternEditor::remove(p, hit); });
+    selected_ = -1;
+    drag_ = Drag::none;
+}
+
+bool SequencerView::keyPressed(const juce::KeyPress& key)
+{
+    if ((key == juce::KeyPress::deleteKey || key == juce::KeyPress::backspaceKey) && selected_ >= 0)
+    {
+        const int hit = selected_;
+        edit([hit](Pattern& p) { PatternEditor::remove(p, hit); });
+        selected_ = -1;
+        return true;
+    }
+    return false;
 }
 
 void SequencerView::reload()
@@ -46,6 +224,8 @@ void SequencerView::reload()
     columns_ = RollLayout::columns(processor_.notes(), handedness);
     hit_hands_ = HandAssignment::assign(processor_.pattern(), processor_.notes(), handedness);
     glow_.assign(processor_.pattern().hits.size(), 0.0f);
+    if (selected_ >= (int)processor_.pattern().hits.size())
+        selected_ = -1;
     shown_version_ = processor_.pattern_version();
     scroll_to(bottom_);
     repaint();
@@ -242,8 +422,9 @@ void SequencerView::paint_hits(juce::Graphics& g, const RollGeometry& geo, StepR
         const auto area = circle(centre, radius);
         g.setColour(hand.brighter(0.5f * light));
         g.fillEllipse(area);
-        g.setColour(colour(right ? COLORS.right_hand_deep : COLORS.left_hand_deep));
-        g.drawEllipse(area, BORDERS.hairline);
+        const bool selected = (int)i == selected_;
+        g.setColour(selected ? colour(COLORS.text) : colour(right ? COLORS.right_hand_deep : COLORS.left_hand_deep));
+        g.drawEllipse(area, selected ? BORDERS.ring : BORDERS.hairline);
     }
 }
 

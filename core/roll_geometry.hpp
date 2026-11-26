@@ -57,6 +57,21 @@ public:
         return {c.x + std::clamp(x, -1.0, 1.0) * room, c.y + std::clamp(y, -1.0, 1.0) * room};
     }
 
+    // the place on a field (in its radius, -1..1) of a hit of `size` whose centre is at `point`
+    RollPoint place_on_field(int step, int column, RollPoint point, double size) const
+    {
+        const RollPoint c = centre(step, column);
+        const double room = std::max(1e-9, radius(column) - hit_radius(column, size));
+        return {std::clamp((point.x - c.x) / room, -1.0, 1.0), std::clamp((point.y - c.y) / room, -1.0, 1.0)};
+    }
+
+    // whether `point` is on a field's circle
+    bool on_field(int step, int column, RollPoint point) const
+    {
+        const RollPoint c = centre(step, column);
+        return std::hypot(point.x - c.x, point.y - c.y) <= radius(column);
+    }
+
     // the steps on screen (a bar's worth of lines from the bottom one), of a pattern of `step_count` steps
     StepRange visible(int step_count) const
     {

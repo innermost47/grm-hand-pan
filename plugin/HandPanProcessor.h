@@ -64,6 +64,8 @@ public:
     void set_hands(const grmh::PlayerHands& hands);
     // the instrument's notes, the ding first
     const std::vector<int>& notes() const { return notes_; }
+    // message thread: a note heard now (a hit just drawn), struck at the next block's start
+    void audition(int note, int velocity);
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout create_layout();
@@ -92,6 +94,12 @@ private:
     std::atomic<double> shown_tempo_{0.0};
     double sample_rate_ = 0.0;
     juce::SmoothedValue<float> gain_{1.0f}; // the volume, gliding
+
+    // the notes heard from the interface: a lock-free queue to the audio thread
+    static constexpr int AUDITION_QUEUE = 32;
+    juce::AbstractFifo auditions_{AUDITION_QUEUE};
+    std::array<grmh::BlockStrike, AUDITION_QUEUE> audition_strikes_{};
+    void play_auditions();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HandPanProcessor)
 };
