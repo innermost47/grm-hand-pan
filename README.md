@@ -10,7 +10,23 @@ rendered to WAV files without a host.
 
 ## Audio examples
 
-Coming soon.
+Rendered by the model alone, straight from `tools/` (no effect, no reverb, nothing edited), at 1 m from a D Kurd:
+
+- **[A short piece](docs/audio/handpan_melody.mp3)** (50 s): the ding as a pulse, rolls between two fields, flams,
+  a fast roll falling into an arpeggio, a sung phrase, a roll on the ding, a last chord left to ring. Listen for the
+  neighbours that sing along and beat.
+- **[The same piece, on the lap](docs/audio/handpan_melody_on_lap.mp3)**: the knees lengthen the Gu's neck, the air
+  mode drops from 85 to 74 Hz, an octave below the ding.
+- **[The scale](docs/audio/handpan_d_kurd.mp3)** (29 s): up and down the D Kurd, the ding soft, medium and loud (hear
+  it grow brighter), then a chord.
+
+## Download and play
+
+The plugin is built from the sources (see below). In a DAW: load **GRM Hand Pan** (VST3) on an instrument track and
+play it from a MIDI keyboard or a clip. Each note-on strikes the field tuned to that note, **D3 A3 Bb3 C4 D4 E4 F4 G4
+A4**, at its velocity; note-offs are ignored (a handpan rings until it fades); other notes are silent. Two settings:
+**On the lap** and **Stereo width**. The first time it loads, the instrument calibrates itself on its measurements: it
+stays silent for about 15 seconds, then plays.
 
 ## Status
 
@@ -61,23 +77,55 @@ something changes, never in the audio callback; their results are plain data tha
   hand), then the scale goes up left, right, left... the highest at the back. Each field, and its click, is heard
   from its side; the stereo width is a setting.
 
-## Build and run
+## Build
 
-Needs CMake 3.22+, Git and a C++17 compiler (on Windows, Visual Studio 2022 with the C++ workload). CMake fetches
-[cppgrm](https://github.com/innermost47/cppgrm), the GRM engine (one header).
+You need **CMake 3.22+**, **Git** and a **C++17 compiler**. CMake downloads everything else: the GRM engine
+([cppgrm](https://github.com/innermost47/cppgrm), one header) and [JUCE](https://juce.com) 8 for the plugin. It has
+been built and tested on **Windows** (Visual Studio 2022); JUCE also builds on macOS and Linux, but this project has
+not been tried there yet.
+
+### Windows
+
+Install [Visual Studio 2022](https://visualstudio.microsoft.com/) (Community is free) with the **Desktop development
+with C++** workload, [CMake](https://cmake.org/download/) and [Git](https://git-scm.com/). Then, in a terminal:
+
+```bat
+git clone https://github.com/innermost47/grm-hand-pan.git
+cd grm-hand-pan
+cmake -B build -G "Visual Studio 17 2022"
+cmake --build build --config Release
+```
+
+The first configure downloads JUCE (a few minutes). Then:
+
+- the **VST3** is `build\GRMHandPan_artefacts\Release\VST3\GRM Hand Pan.vst3`: copy the whole `GRM Hand Pan.vst3`
+  folder to `C:\Program Files\Common Files\VST3` and rescan your plugins;
+- the **standalone** is `build\GRMHandPan_artefacts\Release\Standalone\GRM Hand Pan.exe`: open it, choose your audio
+  device and MIDI input in its settings.
+
+### macOS and Linux (untried)
+
+```sh
+git clone https://github.com/innermost47/grm-hand-pan.git
+cd grm-hand-pan
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+```
+
+On Linux, JUCE needs its usual development packages (ALSA, X11, Freetype... see JUCE's
+[Linux dependencies](https://github.com/juce-framework/JUCE/blob/master/docs/Linux%20Dependencies.md)). Reports of
+how it goes are welcome.
+
+### Tests and offline renders
+
+Add `-DGRMH_BUILD_TESTS=ON` to the configure line to build the tests and the tools (`-DGRMH_BUILD_PLUGIN=OFF` skips
+JUCE and the plugin):
 
 ```bat
 cmake -B build -DGRMH_BUILD_TESTS=ON
 cmake --build build --config Release
 ctest --test-dir build -C Release
 ```
-
-CMake also downloads JUCE and builds the plugin (`-DGRMH_BUILD_PLUGIN=OFF` to skip it): the VST3 is
-`build\GRMHandPan_artefacts\Release\VST3\GRM Hand Pan.vst3` (copy it to `C:\Program Files\Common Files\VST3`), the
-standalone `build\GRMHandPan_artefacts\Release\Standalone\GRM Hand Pan.exe`. Each MIDI note-on strikes the field tuned
-to that note (D3, A3, Bb3, C4, D4, E4, F4, G4, A4), at its velocity; note-offs are ignored, a handpan rings until it
-fades. Two settings: on the lap, and the stereo width. The first time it loads, the instrument calibrates itself on
-its measurements for about 15 seconds before it sounds.
 
 Then render (the paths are those of a Visual Studio build; with a single-configuration generator, drop `Release\`):
 
