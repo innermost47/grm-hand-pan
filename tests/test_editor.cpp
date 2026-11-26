@@ -80,6 +80,44 @@ int main()
         report.expect(processor.transport().shown_playing() && processor.transport().shown_beat() > 0.0,
                       "Play clicked: the plugin's clock runs");
     }
+    // the roll: a left-hander's switch, the wheel through the bars
+    auto* left_handed = find_child<juce::ToggleButton>(*editor, [](juce::ToggleButton& b)
+                                                       { return b.getButtonText() == "Left-handed"; });
+    report.expect(left_handed != nullptr && !left_handed->getToggleState(), "the roll's switch 'Left-handed', off");
+    if (left_handed != nullptr)
+    {
+        left_handed->setToggleState(true, juce::dontSendNotification);
+        left_handed->onClick();
+        report.expect(processor.hands().handedness == Handedness::left_handed,
+                      "switched on: the player leads with the left hand");
+    }
+    Pattern two_bars = processor.pattern();
+    two_bars.bars = 2;
+    processor.set_pattern(two_bars);
+    auto& roll = dynamic_cast<HandPanEditor&>(*editor).sequencer_view();
+    roll.scroll_by(two_bars.steps_per_bar());
+    report.expect(roll.bottom_step() == two_bars.steps_per_bar(), "scrolled up a bar: the second bar");
+    roll.scroll_by(10.0 * two_bars.steps_per_bar());
+    report.expect(roll.bottom_step() == two_bars.steps_per_bar(), "never past the pattern's last bar");
+    roll.scroll_by(-0.2);
+    report.expect(roll.bottom_step() == two_bars.steps_per_bar() - 1, "a small turn down: a step down");
+
+    // a hit glows when its step plays, then fades
+    Pattern lit;
+    PatternHit first;
+    first.field = 0;
+    lit.hits = {first};
+    processor.set_pattern(lit);
+    processor.transport().stop();
+    processor.transport().play();
+    juce::AudioBuffer<float> block(2, 512);
+    juce::MidiBuffer none;
+    processor.processBlock(block, none);
+    roll.refresh();
+    report.expect(roll.glow(0) == 1.0f, "the hit of the step playing lights up");
+    juce::Thread::sleep(300);
+    roll.refresh();
+    report.expect(roll.glow(0) > 0.0f && roll.glow(0) < 1.0f, "then fades, as the note does");
     editor.reset();
     return report.finish();
 }

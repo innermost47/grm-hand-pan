@@ -7,12 +7,14 @@
 
 using namespace grmh::ui;
 
-HandPanEditor::HandPanEditor(HandPanProcessor& processor) : juce::AudioProcessorEditor(processor), top_bar_(processor)
+HandPanEditor::HandPanEditor(HandPanProcessor& processor)
+    : juce::AudioProcessorEditor(processor), top_bar_(processor), roll_(processor)
 {
     setLookAndFeel(&look_);
     for (juce::Component* c : {(juce::Component*)&top_bar_, (juce::Component*)&patterns_,
                                (juce::Component*)&sequencer_, (juce::Component*)&arranger_})
         addAndMakeVisible(c);
+    sequencer_.addAndMakeVisible(roll_);
     setSize(DIMENSIONS.editor_width, DIMENSIONS.editor_height);
 }
 
@@ -30,4 +32,5 @@ void HandPanEditor::resized()
     arranger_.setBounds(area.removeFromRight(DIMENSIONS.side_column));
     area.removeFromRight(SPACING.xl);
     sequencer_.setBounds(area);
+    roll_.setBounds(sequencer_.content_area());
 }

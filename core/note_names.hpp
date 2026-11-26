@@ -22,4 +22,14 @@ inline int midi_of_name(const std::string& name)
         --note, ++i;
     return note + 12 * (std::stoi(name.substr(i)) + 1);
 }
+
+// a MIDI note's name as a musician writes it, in UTF-8, flats for the black keys (a handpan's scales are written in
+// flats): 58 -> "B♭3"
+inline std::string name_of_midi(int midi)
+{
+    static const char* const names[12] = {"C", "D\xe2\x99\xad", "D", "E\xe2\x99\xad", "E", "F",
+                                          "G\xe2\x99\xad", "G", "A\xe2\x99\xad", "A", "B\xe2\x99\xad", "B"};
+    const int octave = midi / 12 - 1;
+    return std::string(names[((midi % 12) + 12) % 12]) + std::to_string(octave);
+}
 } // namespace grmh

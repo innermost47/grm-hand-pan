@@ -17,9 +17,10 @@ float volume_gain(float decibels) { return juce::Decibels::decibelsToGain(decibe
 
 HandPanProcessor::HandPanProcessor()
     : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-      parameters_(*this, nullptr, "GRMHandPan", create_layout()), solver_(parameters_, models_)
+      parameters_(*this, nullptr, "GRMHandPan", create_layout()), solver_(parameters_, models_),
+      notes_(D_KURD.begin(), D_KURD.end())
 {
-    set_pattern(pattern_);
+    compile_pattern();
 }
 
 HandPanProcessor::~HandPanProcessor() { solver_.stopThread(plugin::SOLVER_STOP_TIMEOUT_MS); }
@@ -46,10 +47,19 @@ juce::AudioProcessorValueTreeState::ParameterLayout HandPanProcessor::create_lay
 void HandPanProcessor::set_pattern(const Pattern& pattern)
 {
     pattern_ = pattern;
-    const std::vector<int> notes(D_KURD.begin(), D_KURD.end());
-    auto* compiled = new CompiledPattern{PatternCompiler::compile(pattern_, notes, PlayerHands{}),
-                                         pattern_.length_beats()};
-    patterns_.post(compiled);
+    compile_pattern();
+}
+
+void HandPanProcessor::set_hands(const PlayerHands& hands)
+{
+    hands_ = hands;
+    compile_pattern();
+}
+
+void HandPanProcessor::compile_pattern()
+{
+    ++pattern_version_;
+    patterns_.post(new CompiledPattern{PatternCompiler::compile(pattern_, notes_, hands_), pattern_.length_beats()});
 }
 
 void HandPanProcessor::prepareToPlay(double sample_rate, int)

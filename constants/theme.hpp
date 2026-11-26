@@ -52,4 +52,27 @@ struct Opacity
 };
 
 inline constexpr Opacity OPACITY{};
+
+// the rhythm on the roll's lines: how much each kind of line's circles stand out (the alpha of their ring, washi dim
+// over the hairline colour): the bar's first beat, a beat, an off-beat (the half beat), the other steps
+struct RhythmMarks
+{
+    float downbeat = 0.85f;
+    float beat = 0.55f;
+    float off_beat = 0.3f;
+    float other = 0.0f;
+};
+
+inline constexpr RhythmMarks RHYTHM{};
+
+// a note that plays glows, then fades as a struck field does
+struct Glow
+{
+    double seconds = 0.9;  // its light falls by e in that time
+    float spread = 1.7f;   // the halo's radius, of the hit's circle's at its brightest
+    float strength = 0.75f; // the halo's alpha at its centre, at its brightest
+    float threshold = 0.01f; // below: dark
+};
+
+inline constexpr Glow GLOW{};
 } // namespace grmh::ui

@@ -43,6 +43,15 @@ constexpr double FLAM_GAP = 0.03; // s
 // ---- the weaker hand's fingertip speed, relative to the stronger one: 1 both alike (see [P89] [F06] above)
 constexpr double WEAK_HAND_SPEED_DEFAULT = 1.0;
 
+// ---- the roll's drawing: each column outwards shrinks a field's circle this much (of the ding's), the arc lifts the
+// middle of a line this much (of a line's height, design/gemini.jpg), a circle fills this much of its room
+constexpr double ROLL_CIRCLE_SHRINK = 0.1;
+constexpr double ROLL_ARC_LIFT = 0.9;
+constexpr double ROLL_CIRCLE_FILL = 0.46;
+// a hit's circle inside its field, from the smallest to the biggest (of the field's radius)
+constexpr double HIT_RADIUS_MIN = 0.22;
+constexpr double HIT_RADIUS_MAX = 0.8;
+
 // ---- a field this close to the middle (stereo position, core/layout.hpp) is on neither side: the ding, the field in
 // front of the player, the one at the back
 constexpr double CENTRE_POSITION_TOLERANCE = 1e-6;

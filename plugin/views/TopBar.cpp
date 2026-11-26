@@ -94,6 +94,10 @@ void TopBar::refresh()
 
 void TopBar::paint(juce::Graphics& g)
 {
+    g.setColour(HandPanLookAndFeel::colour(COLORS.text));
+    g.setFont(Typefaces::get().title(TYPOGRAPHY.display));
+    g.drawText(JucePlugin_Name, title_area_, juce::Justification::centredLeft, false);
+
     g.setColour(HandPanLookAndFeel::colour(COLORS.line));
     g.fillRect(getLocalBounds().removeFromBottom(1));
 }
@@ -104,7 +108,9 @@ void TopBar::resized()
     const int centre_y = area.getCentreY();
     const auto centred = [&](juce::Rectangle<int> r, int height) { return r.withSizeKeepingCentre(r.getWidth(), height); };
 
-    // left: V, W, on the lap
+    // left: the name, V, W, on the lap
+    title_area_ = area.removeFromLeft(DIMENSIONS.title_width);
+    area.removeFromLeft(SPACING.lg);
     const int knob_height = DIMENSIONS.knob + DIMENSIONS.knob_caption;
     const int knob_centre_y = centre_y - DIMENSIONS.knob_caption / 2; // the knob and its name, centred together
     for (Knob* knob : {&volume_, &width_})

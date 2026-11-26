@@ -54,9 +54,16 @@ public:
     // the tempo of the last block (the host's, or the plugin's own)
     double shown_tempo() const { return shown_tempo_.load(); }
 
-    // message thread: the roll's pattern, and a new one (compiled here, played from the next block)
+    // message thread: the roll's pattern, and a new one (compiled here, played from the next block); the version
+    // grows at every change, for the views
     const grmh::Pattern& pattern() const { return pattern_; }
     void set_pattern(const grmh::Pattern& pattern);
+    int pattern_version() const { return pattern_version_; }
+    // message thread: the player's hands (which one is strong), the pattern played again with them
+    const grmh::PlayerHands& hands() const { return hands_; }
+    void set_hands(const grmh::PlayerHands& hands);
+    // the instrument's notes, the ding first
+    const std::vector<int>& notes() const { return notes_; }
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout create_layout();
@@ -71,7 +78,12 @@ private:
     grmh::Engine engine_;
     const grmh::SoundModel* playing_ = nullptr;
 
+    void compile_pattern(); // message thread: the pattern and the hands to the audio thread
+
+    std::vector<int> notes_;
     grmh::Pattern pattern_;                          // message thread
+    grmh::PlayerHands hands_;                        // message thread
+    int pattern_version_ = 0;                        // message thread
     grmh::Mailbox<grmh::CompiledPattern> patterns_;  // message thread -> audio thread
     const grmh::CompiledPattern* playing_pattern_ = nullptr;
     grmh::PatternSequencer sequencer_;

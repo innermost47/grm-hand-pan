@@ -52,6 +52,10 @@ struct Dimensions
     int tempo_width = 92;
     int scale_width = 240;
     int lap_switch_width = 120;
+    int title_width = 170; // the plugin's name, at the left of the top bar
+    int roll_header = 28;  // the roll's switches, above it
+    int roll_names = 28;   // the fields' names, under it
+    int roll_gutter = 36;  // bars and beats on the left, LEDs on the right
 };
 
 inline constexpr Spacing SPACING{};
