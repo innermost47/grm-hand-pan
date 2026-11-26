@@ -5,7 +5,9 @@ long, how the air in the shell answers, how a fingertip strikes, how the fields 
 network**: physical relations solved against published measurements, each with its uncertainty. No samples, no
 filter tuned by ear. Free software under the AGPL-3.0.
 
-![GRM Hand Pan playing: the patterns on the left, the Hand Pan Roll in the middle, the arranger on the right](docs/images/hand-pan-roll.png)
+## Video demo
+
+[![Watch the GRM Hand Pan demo on YouTube](https://img.youtube.com/vi/K8vk2t-FpjY/maxresdefault.jpg)](https://www.youtube.com/watch?v=K8vk2t-FpjY)
 
 A D Kurd handpan in a VST3 / standalone plugin (JUCE), with its own sequencer, the **Hand Pan Roll**: draw strikes
 on the instrument's fields, two hands at a time, and play them in patterns and songs. Or play it from MIDI. It is
@@ -65,19 +67,19 @@ Everything (patterns, song, hands) is saved with your project.
 
 ## Status
 
-| Part | State |
-| --- | --- |
-| Tone fields: tuned and untuned modes, their losses, their radiation | done |
-| The cavity's air mode (Helmholtz) and the Gu | done |
-| The fingertip strike: a pulp that hardens as it is pressed | done |
-| How a strike excites each mode, calibrated on recorded notes | done |
-| Sympathetic fields: neighbours that sing and beat | done |
-| The finger's click above the modes (plate theory) | done |
-| Stereo: each field heard from where it sits on the instrument | done |
-| VST3 / standalone plugin, MIDI notes or patterns | done |
-| The Hand Pan Roll: sequencer, two hands, flams, patterns, arranger, WAV export | done |
-| A sharper finger attack, matched to finger recordings | next |
-| Other scales, playing gestures (palm, muted, harmonics), the room | later |
+| Part                                                                           | State |
+| ------------------------------------------------------------------------------ | ----- |
+| Tone fields: tuned and untuned modes, their losses, their radiation            | done  |
+| The cavity's air mode (Helmholtz) and the Gu                                   | done  |
+| The fingertip strike: a pulp that hardens as it is pressed                     | done  |
+| How a strike excites each mode, calibrated on recorded notes                   | done  |
+| Sympathetic fields: neighbours that sing and beat                              | done  |
+| The finger's click above the modes (plate theory)                              | done  |
+| Stereo: each field heard from where it sits on the instrument                  | done  |
+| VST3 / standalone plugin, MIDI notes or patterns                               | done  |
+| The Hand Pan Roll: sequencer, two hands, flams, patterns, arranger, WAV export | done  |
+| A sharper finger attack, matched to finger recordings                          | next  |
+| Other scales, playing gestures (palm, muted, harmonics), the room              | later |
 
 ## How it sounds the way it does
 
@@ -208,29 +210,29 @@ the model with the meter of the tests, `probe_sympathy` shows how the sympathy n
 Every network is checked against the measurements it comes from, and every test was seen failing on a deliberate
 error before it was kept.
 
-| ctest name | Checks |
-| --- | --- |
-| `grm_engine_solves` | the build and the GRM engine |
-| `sourced_constants` | the published data and the spreads declared for them |
-| `tone_field_network` | plate frequency equations (Bessel), the loss law against the measured decays, modes against measured fields |
-| `cavity_network` | speed of sound, Helmholtz and radiation formulas, the lap lowering the air mode |
-| `strike_network` | the impact, the hardening pulp, the force pulse's spectrum, louder is brighter |
-| `sound_engine` | partials at the model's frequencies, decay, the air mode, the level, the lock-free mailbox |
-| `mode_radiation` | monopole, dipole and quadrupole fields against their compact and incoherent limits |
-| `mode_participation` | the calibrated instrument against the recorded notes |
-| `sympathetic_fields` | energy kept by the exchange, the coupling against its measurements, the beatings |
-| `finger_click` | the contact pulse, Newton over a baffle, the click left to the modes below them, louder is brighter |
-| `field_layout` | where the fields sit and sound, constant-power stereo gains |
-| `pattern_sequencer` | the grid, a circle as a velocity, the two hands, the weak hand, flams, the loop whatever the host's blocks |
-| `transport_clock` | the host's clock or the plugin's own (play, pause, stop), the strikes of a block, bar.beat.step |
-| `roll_layout` | the fields in an arc, mirrored for a left-hander, lines that never overlap, note names |
-| `pattern_editing` | two strikes a step at most, moving and resizing a selection, copy, paste, clone, undo |
-| `pattern_library` | the banks, a pattern's length and signature |
-| `pattern_player` | a pattern asked for starts on the next bar line, let go it stops, whatever the host's blocks |
-| `arrangement` | the song's blocks one after the other, repeats, silences in any signature, played once, the loop |
-| `design_system` | the typefaces, text contrast (WCAG), the two hands' colours |
-| `plugin_as_hosted` | the plugin called as a host would: MIDI to sound, stereo, the roll, the volume, keys playing patterns, the song, the WAV export, state |
-| `plugin_editor` | the window: knobs and parameters, the transport, drawing with the mouse and the shortcuts, the banks, the arranger, the session saved bit for bit |
+| ctest name           | Checks                                                                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `grm_engine_solves`  | the build and the GRM engine                                                                                                                      |
+| `sourced_constants`  | the published data and the spreads declared for them                                                                                              |
+| `tone_field_network` | plate frequency equations (Bessel), the loss law against the measured decays, modes against measured fields                                       |
+| `cavity_network`     | speed of sound, Helmholtz and radiation formulas, the lap lowering the air mode                                                                   |
+| `strike_network`     | the impact, the hardening pulp, the force pulse's spectrum, louder is brighter                                                                    |
+| `sound_engine`       | partials at the model's frequencies, decay, the air mode, the level, the lock-free mailbox                                                        |
+| `mode_radiation`     | monopole, dipole and quadrupole fields against their compact and incoherent limits                                                                |
+| `mode_participation` | the calibrated instrument against the recorded notes                                                                                              |
+| `sympathetic_fields` | energy kept by the exchange, the coupling against its measurements, the beatings                                                                  |
+| `finger_click`       | the contact pulse, Newton over a baffle, the click left to the modes below them, louder is brighter                                               |
+| `field_layout`       | where the fields sit and sound, constant-power stereo gains                                                                                       |
+| `pattern_sequencer`  | the grid, a circle as a velocity, the two hands, the weak hand, flams, the loop whatever the host's blocks                                        |
+| `transport_clock`    | the host's clock or the plugin's own (play, pause, stop), the strikes of a block, bar.beat.step                                                   |
+| `roll_layout`        | the fields in an arc, mirrored for a left-hander, lines that never overlap, note names                                                            |
+| `pattern_editing`    | two strikes a step at most, moving and resizing a selection, copy, paste, clone, undo                                                             |
+| `pattern_library`    | the banks, a pattern's length and signature                                                                                                       |
+| `pattern_player`     | a pattern asked for starts on the next bar line, let go it stops, whatever the host's blocks                                                      |
+| `arrangement`        | the song's blocks one after the other, repeats, silences in any signature, played once, the loop                                                  |
+| `design_system`      | the typefaces, text contrast (WCAG), the two hands' colours                                                                                       |
+| `plugin_as_hosted`   | the plugin called as a host would: MIDI to sound, stereo, the roll, the volume, keys playing patterns, the song, the WAV export, state            |
+| `plugin_editor`      | the window: knobs and parameters, the transport, drawing with the mouse and the shortcuts, the banks, the arranger, the session saved bit for bit |
 
 ## Layout
 
