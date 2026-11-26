@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Anthony Charretier
 //
-// The real-time part: the voices of the fields, the air of the cavity, the pressure that reaches the listener. It
-// reads a SoundModel and never allocates, locks or solves a network.
+// The real-time part: the voices of the fields, the air of the cavity, the fingers on the steel, the pressure that
+// reaches the listener. It reads a SoundModel and never allocates, locks or solves a network.
 #pragma once
 
 #include <array>
 
 #include "../models/sound.hpp"
 #include "cavity_resonator.hpp"
+#include "finger_contact.hpp"
 #include "voice.hpp"
 
 namespace grmh
@@ -33,12 +34,16 @@ public:
         if (sound_ == nullptr)
             return;
         const int field = sound_->field_of(note);
-        if (field >= 0)
-            voices_[(size_t)field].strike(midi_velocity);
+        if (field < 0 || midi_velocity <= 0 || midi_velocity >= MIDI_VELOCITIES)
+            return;
+        voices_[(size_t)field].strike(midi_velocity);
+        const FieldSound& struck = sound_->fields[(size_t)field];
+        contacts_.press(sound_->contact.length[(size_t)midi_velocity], sound_->contact.peak_force[(size_t)midi_velocity],
+                        &struck.click_residual, struck.click_tail);
     }
 
-    // the pressure at the listener, in full scale, for `count` samples: p = rho / (4 pi r) dU/dt, dU/dt the volume
-    // acceleration of the fields out of the shell and of the Gu's plug
+    // the pressure at the listener, in full scale, for `count` samples: the modes' p = rho / (4 pi r) dU/dt, dU/dt the
+    // volume acceleration of the fields out of the shell and of the Gu's plug, and the fingers' click
     void render(float* out, int count)
     {
         for (int n = 0; n < count; ++n)
@@ -56,7 +61,7 @@ public:
                 breathing += motion.breathing;
             }
             acceleration += cavity_.step(breathing);
-            out[n] = (float)(sound_->pressure_gain * acceleration);
+            out[n] = (float)(sound_->pressure_gain * acceleration + sound_->contact.click_gain * contacts_.step());
             exchange();
         }
     }
@@ -69,6 +74,7 @@ public:
         for (auto& voice : voices_)
             voice.silence();
         cavity_.silence();
+        contacts_.release();
     }
 
 private:
@@ -86,5 +92,6 @@ private:
     const SoundModel* sound_ = nullptr;
     std::array<FieldVoice, MAX_FIELDS> voices_{};
     CavityResonator cavity_;
+    FingerContacts contacts_;
 };
 } // namespace grmh

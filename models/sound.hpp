@@ -59,6 +59,8 @@ struct FieldSound
     int note = 0;
     double area = 0.0; // m2, the field's effective plate: the air its fundamental pushes into the cavity
     std::array<ModeSound, FIELD_MODES> modes{};
+    BiquadCoefficients click_residual; // a high-pass at the field's highest mode: the finger's click above the modes
+    int click_tail = 0;                // samples the residual rings once the finger has left
 };
 
 // the air of the cavity, ready to play: the Gu's plug as a resonator driven by the fields' volume velocity
@@ -68,6 +70,16 @@ struct CavitySound
     double quality_factor = 0.0;
 };
 
+// the finger on the steel, ready to play: for each MIDI velocity, how long the pulp pushes and how hard (a half-sine
+// force pulse), and the pressure that force radiates at the listener per newton (full scale): the sheet's volume
+// accelerates by F / rho_s, a baffled source, p = rho0 F / (2 pi r rho_s)
+struct ContactSound
+{
+    std::array<int, MIDI_VELOCITIES> length{};        // samples
+    std::array<double, MIDI_VELOCITIES> peak_force{}; // N
+    double click_gain = 0.0;                          // full scale per newton
+};
+
 // everything the audio thread needs, solved off it
 struct SoundModel
 {
@@ -75,6 +87,7 @@ struct SoundModel
     int field_count = 0;
     std::array<FieldSound, MAX_FIELDS> fields{};
     CavitySound cavity;
+    ContactSound contact;
     int coupling_count = 0;
     std::array<Coupling, MAX_COUPLINGS> couplings{};
     double pressure_gain = 0.0; // full scale per volume acceleration (m3/s2): rho / (4 pi r) / FULL_SCALE_PRESSURE

@@ -90,6 +90,12 @@ struct ToneField
     std::vector<Mode> modes;   // FIELD_MODES modes: the tuned ones, fundamental first, then the untuned
 };
 
+// the coefficients of a second-order filter (transposed direct form II), a0 normalised to 1; the default passes all
+struct BiquadCoefficients
+{
+    double b0 = 1.0, b1 = 0.0, b2 = 0.0, a1 = 0.0, a2 = 0.0;
+};
+
 // the levels of a note's modes against its fundamental, as a microphone hears them (dB)
 struct ModeLevels
 {
@@ -98,14 +104,18 @@ struct ModeLevels
     double fifth = 0.0;
     double untuned = 0.0; // the strongest peak 6.5-9.5 times the fundamental
     double untuned_band_floor = 0.0;
+    double attack = 0.0; // the rms above every mode around the onset, against the fundamental's amplitude
 };
 
-// how strongly a strike at the sweet spot excites each kind of mode, against the fundamental (amplitude ratios)
+// how strongly a strike at the sweet spot excites each kind of mode, against the fundamental, and how loud the finger's
+// click above the modes is against what the plate theory gives (amplitude ratios; the click is not calibrated: 1, or 0
+// to hear the modes alone)
 struct Participation
 {
     Measured octave{1.0, 0.0};
     Measured fifth{1.0, 0.0};
     Measured untuned{1.0, 0.0};
+    Measured click{1.0, 0.0};
 
     // the weight of a field's mode, by its index (0 the fundamental)
     double of_mode(size_t index) const

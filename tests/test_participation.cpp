@@ -18,12 +18,12 @@ int main()
     test::TestReport report("participation");
     const Participation& p = participation();
     const auto db = [](const Measured& m) { return 20.0 * std::log10(m.value); };
-    std::printf("  participation: octave %.1f dB, fifth %.1f dB, untuned %.1f dB (+/- %.1f dB each)\n", db(p.octave),
-                db(p.fifth), db(p.untuned), 20.0 * p.untuned.sigma_dex());
+    std::printf("  participation: octave %.1f dB, fifth %.1f dB, untuned %.1f dB (+/- %.1f dB each)\n",
+                db(p.octave), db(p.fifth), db(p.untuned), 20.0 * p.untuned.sigma_dex());
     report.expect(db(p.untuned) < -20.0 && db(p.untuned) + 20.0 * p.untuned.sigma_dex() < 0.0,
                   "a strike at the sweet spot hardly excites the untuned modes (recordings)");
 
-    double gaps[3] = {0.0, 0.0, 0.0};
+    double gaps[4] = {0.0, 0.0, 0.0, 0.0};
     for (const RecordedNote& r : RECORDED_NOTES)
     {
         Settings settings;
@@ -31,9 +31,11 @@ int main()
         const Model model = solve_instrument(settings, CALIBRATION_SAMPLE_RATE);
         const auto rendered = OfflineRenderer::render(model.sound(), {{0.0, r.note, MIDI_VELOCITY_REFERENCE}}, 1.0);
         const ModeLevels l = ModeLevelMeter::measure(rendered, CALIBRATION_SAMPLE_RATE, Model::note_frequency(r.note));
-        const double note_gaps[3] = {r.octave - l.octave, r.fifth - l.fifth, r.untuned - l.untuned};
-        std::printf("  %s: recording - model = %5.1f / %5.1f / %5.1f dB\n", r.name, note_gaps[0], note_gaps[1],
-                    note_gaps[2]);
+        const double note_gaps[4] = {r.octave - l.octave, r.fifth - l.fifth, r.untuned - l.untuned,
+                                     r.attack - l.attack};
+        std::printf("  %s: recording - model = %5.1f / %5.1f / %5.1f / %5.1f dB\n", r.name, note_gaps[0],
+                    note_gaps[1], note_gaps[2], note_gaps[3]);
+        gaps[3] += note_gaps[3] / RECORDED_NOTES.size();
         for (int k = 0; k < 3; ++k)
         {
             gaps[k] += note_gaps[k] / RECORDED_NOTES.size();
@@ -42,6 +44,8 @@ int main()
                               std::to_string((int)note_gaps[k]) + " dB)");
         }
     }
+    // the attack is not calibrated (see participation_network.hpp): its gap is shown, not checked
+    std::printf("  mean attack gap, recording - model: %.1f dB\n", gaps[3]);
     const char* kinds[3] = {"octave", "fifth", "untuned modes"};
     for (int k = 0; k < 3; ++k)
         report.expect(std::fabs(gaps[k]) < 1.0, std::string("on average, the ") + kinds[k] +

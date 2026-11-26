@@ -5,6 +5,7 @@
 // thread plays. Solved on the solver thread, never on the audio thread.
 #pragma once
 
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 #include <string>
@@ -12,6 +13,7 @@
 
 #include "../constants/audio.hpp"
 #include "../models/sound.hpp"
+#include "biquad.hpp"
 #include "cavity_network.hpp"
 #include "couplings.hpp"
 #include "handpan_networks.hpp"
@@ -50,6 +52,8 @@ public:
         sound.cavity = {model.cavity_.frequency.value, model.cavity_.quality_factor.value};
         const double air_density = ATMOSPHERIC_PRESSURE * M_AIR / (R_GAS * settings.temperature);
         sound.pressure_gain = air_density / (4.0 * PI * LISTENING_DISTANCE) / FULL_SCALE_PRESSURE;
+        sound.contact = contact_sound(air_density, sample_rate);
+        sound.contact.click_gain *= calibration.participation.click.value;
         return model;
     }
 
@@ -60,6 +64,26 @@ public:
     const SoundModel& sound() const { return sound_; }
 
 private:
+    // the finger on the steel: each MIDI velocity's contact (the strike network's half-sine), and the pressure a force
+    // on the sheet radiates. Newton: the volume the sheet sweeps accelerates by F / rho_s whatever shape it vibrates
+    // in; at the click's wavelengths (above the modes, 11 cm and shorter) the 50 cm shell is a baffle:
+    // p = rho0 F / (2 pi r rho_s) [KF00]. Each field hears it through its residual (FieldSound::click_residual).
+    static ContactSound contact_sound(double air_density, double sample_rate)
+    {
+        ContactSound contact;
+        const auto& strikes = strike_table();
+        for (int velocity = 1; velocity < MIDI_VELOCITIES; ++velocity)
+        {
+            const Strike& strike = strikes[(size_t)velocity];
+            contact.length[(size_t)velocity] =
+                std::max(1, static_cast<int>(std::lround(strike.contact_time.value * sample_rate)));
+            contact.peak_force[(size_t)velocity] = strike.peak_force.value;
+        }
+        const double surface_density = STEEL_DENSITY.value * SHELL_THICKNESS.value;
+        contact.click_gain = air_density / (2.0 * PI * LISTENING_DISTANCE * surface_density) / FULL_SCALE_PRESSURE;
+        return contact;
+    }
+
     // a field ready to play: each mode's rotation per sample, the air it moves (the field's area times its radiation
     // factor), and the velocity each MIDI velocity's strike gives it (u = w J S(f) / M: the strike's impulse at the
     // mode's frequency, over the field's mass, times the mode's participation w at the sweet spot)
@@ -70,6 +94,12 @@ private:
         sound.note = note;
         const double radius = field.effective_radius.value;
         sound.area = PI * radius * radius;
+        // the finger's click above the modes: a high-pass at the highest mode, ringing out over four of its periods
+        double highest = 0.0;
+        for (const Mode& m : field.modes)
+            highest = std::max(highest, m.frequency.value);
+        sound.click_residual = high_pass(highest, sample_rate);
+        sound.click_tail = static_cast<int>(std::ceil(4.0 * sample_rate / highest));
         const double mass = STEEL_DENSITY.value * SHELL_THICKNESS.value * sound.area;
         const auto& strikes = strike_table();
         for (size_t m = 0; m < field.modes.size(); ++m)

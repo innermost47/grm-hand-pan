@@ -19,8 +19,8 @@ namespace
 {
 void print(const char* label, const ModeLevels& l)
 {
-    std::printf("  %-9s f1 %7.1f Hz | octave %6.1f dB | fifth %6.1f dB | untuned %6.1f dB (band floor %6.1f dB)\n",
-                label, l.fundamental_frequency, l.octave, l.fifth, l.untuned, l.untuned_band_floor);
+    std::printf("  %-9s f1 %7.1f Hz | octave %6.1f dB | fifth %6.1f dB | untuned %6.1f dB (floor %6.1f) | attack %6.1f dB\n",
+                label, l.fundamental_frequency, l.octave, l.fifth, l.untuned, l.untuned_band_floor, l.attack);
 }
 } // namespace
 
