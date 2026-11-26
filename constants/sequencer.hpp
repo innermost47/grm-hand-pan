@@ -1,0 +1,37 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Anthony Charretier
+//
+// The Hand Pan Roll's defaults and the way a drawn hit becomes a strike. They are choices, not measurements, for
+// Anthony's ear to tune, except where a source is given. On the balance of the two hands, the sources found
+// (26/11/2026) do not settle a default:
+//   [P89]  Petersen et al., "Grip strength and hand dominance: challenging the 10% rule", Am. J. Occup. Ther. (1989),
+//          abstract, 310 subjects: the dominant hand grips 12.72 % harder in right-handers, -0.08 % in left-handers.
+//   [F06]  Fujii et al., "Tapping speed asymmetry in drummers for single-hand tapping with a stick" (2006), PubMed
+//          17037670, abstract, 13 right-handed drummers against 13 non-drummers: the drummers' hands are less unequal.
+//   (volumes and pages not checked: PubMed refused the automated reading)
+// A grip is not a tap, and a trained player's hands grow alike [F06]: both hands strike alike unless the player says
+// otherwise (Anthony, 26/11/2026).
+#pragma once
+
+namespace grmh
+{
+// ---- the grid
+constexpr int TIME_SIGNATURE_NUMERATOR_DEFAULT = 4;
+constexpr int TIME_SIGNATURE_DENOMINATOR_DEFAULT = 4;
+constexpr int STEPS_PER_BEAT_DEFAULT = 4; // sixteenths in 4/4
+
+// ---- a hit's circle (0..1) is a MIDI velocity, from the lightest to the hardest
+constexpr double HIT_SIZE_DEFAULT = 0.5;
+constexpr int HIT_VELOCITY_MIN = 1;
+constexpr int HIT_VELOCITY_MAX = 127;
+
+// ---- a flam: the second finger lands this long after the first (each grace this much earlier than the next)
+constexpr double FLAM_GAP = 0.03; // s
+
+// ---- the weaker hand's fingertip speed, relative to the stronger one: 1 both alike (see [P89] [F06] above)
+constexpr double WEAK_HAND_SPEED_DEFAULT = 1.0;
+
+// ---- a field this close to the middle (stereo position, core/layout.hpp) is on neither side: the ding, the field in
+// front of the player, the one at the back
+constexpr double CENTRE_POSITION_TOLERANCE = 1e-6;
+} // namespace grmh

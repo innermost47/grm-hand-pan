@@ -42,6 +42,7 @@ if(GRMH_BUILD_TESTS)
     grmh_add_core_test(test_sympathy sympathetic_fields)
     grmh_add_core_test(test_finger_click finger_click)
     grmh_add_core_test(test_layout field_layout)
+    grmh_add_core_test(test_pattern pattern_sequencer)
 
     # the offline tools: the core's sound to a WAV file for the ear, and the probes of the networks
     foreach(tool render_scale render_melody probe_click probe_sympathy measure_recordings)
@@ -70,9 +71,19 @@ if(GRMH_BUILD_PLUGIN)
         IS_MIDI_EFFECT FALSE
         COPY_PLUGIN_AFTER_BUILD FALSE)
 
+    # the typefaces of the interface (SIL Open Font License, reduced to the Latin glyphs)
+    juce_add_binary_data(GRMHandPanBinaryData
+        SOURCES
+            assets/fonts/zen-kaku-gothic-light.ttf
+            assets/fonts/zen-kaku-gothic-regular.ttf
+            assets/fonts/zen-kaku-gothic-medium.ttf
+            assets/fonts/shippori-mincho-regular.ttf)
+
     target_sources(GRMHandPan PRIVATE
         plugin/HandPanProcessor.cpp
-        plugin/SolverThread.cpp)
+        plugin/SolverThread.cpp
+        plugin/style/HandPanLookAndFeel.cpp
+        plugin/style/Typefaces.cpp)
 
     target_compile_definitions(GRMHandPan PUBLIC
         JUCE_WEB_BROWSER=0
@@ -83,6 +94,7 @@ if(GRMH_BUILD_PLUGIN)
     target_link_libraries(GRMHandPan
         PRIVATE
             cppgrm
+            GRMHandPanBinaryData
             juce::juce_audio_utils
         PUBLIC
             juce::juce_recommended_config_flags
@@ -90,15 +102,24 @@ if(GRMH_BUILD_PLUGIN)
             juce::juce_recommended_warning_flags)
 
     if(GRMH_BUILD_TESTS)
-        # a test built against the plugin's code
-        function(grmh_add_plugin_test source ctest_name)
-            add_executable(${source} tests/${source}.cpp)
-            target_link_libraries(${source} PRIVATE GRMHandPan cppgrm juce::juce_audio_utils
+        # a program built against the plugin's code (its processor, its look and feel, its typefaces)
+        function(grmh_add_plugin_executable path name)
+            add_executable(${name} ${path}/${name}.cpp)
+            target_link_libraries(${name} PRIVATE GRMHandPan GRMHandPanBinaryData cppgrm juce::juce_audio_utils
                 juce::juce_recommended_config_flags)
-            target_compile_definitions(${source} PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+            target_compile_definitions(${name} PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+        endfunction()
+
+        # a test of the plugin's code, registered in ctest as <ctest_name>
+        function(grmh_add_plugin_test source ctest_name)
+            grmh_add_plugin_executable(tests ${source})
             add_test(NAME ${ctest_name} COMMAND ${source})
         endfunction()
 
         grmh_add_plugin_test(plugin_host_test plugin_as_hosted)
+        grmh_add_plugin_test(test_design_system design_system)
+
+        # the interface drawn to a PNG for Anthony's eye
+        grmh_add_plugin_executable(tools render_design_system)
     endif()
 endif()

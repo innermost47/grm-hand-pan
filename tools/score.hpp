@@ -11,6 +11,7 @@
 #include <random>
 #include <vector>
 
+#include "../constants/sequencer.hpp"
 #include "../core/offline_renderer.hpp"
 
 namespace grmh
@@ -62,8 +63,6 @@ public:
     }
 
 private:
-    static constexpr double FLAM_GAP = 0.03; // s between the two fingers of a flam
-
     double beat_;
     double timing_jitter_;
     int velocity_jitter_;
