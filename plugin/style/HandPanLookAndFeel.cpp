@@ -26,7 +26,7 @@ HandPanLookAndFeel::HandPanLookAndFeel()
     setColour(juce::Slider::rotarySliderFillColourId, colour(COLORS.accent));
     setColour(juce::Slider::rotarySliderOutlineColourId, colour(COLORS.line));
     setColour(juce::Slider::thumbColourId, text);
-    setColour(juce::Slider::textBoxTextColourId, colour(COLORS.text_dim));
+    setColour(juce::Slider::textBoxTextColourId, text);
     setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
     setColour(juce::ToggleButton::textColourId, text);
     setColour(juce::ToggleButton::tickColourId, colour(COLORS.accent));
@@ -67,8 +67,8 @@ void HandPanLookAndFeel::draw_surface(juce::Graphics& g, juce::Rectangle<float> 
     g.drawRoundedRectangle(area, corner, BORDERS.hairline);
 }
 
-// a disc on a ring: the ring's arc shows the value in the accent colour, a short ink stroke on the disc points to it,
-// the knob's name (its letter) in the middle
+// a disc on a ring: the ring's arc shows the value in the accent colour, a short ink stroke on the disc points to it
+// (the knob's name is written under it: widgets/Knob)
 void HandPanLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height, float position,
                                           float start_angle, float end_angle, juce::Slider& slider)
 {
@@ -101,14 +101,20 @@ void HandPanLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int w
         return disc.getCentre().getPointOnCircumference(r * share, angle);
     };
     g.setColour(colour(COLORS.text).withMultipliedAlpha(enabled ? 1.0f : OPACITY.disabled));
-    g.drawLine(juce::Line<float>(towards(0.62f), towards(0.92f)), BORDERS.ring);
+    g.drawLine(juce::Line<float>(towards(0.3f), towards(0.9f)), BORDERS.ring);
+}
 
-    if (slider.getName().isNotEmpty())
+void HandPanLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height, float position,
+                                          float min_position, float max_position, juce::Slider::SliderStyle style,
+                                          juce::Slider& slider)
+{
+    if (!slider.isBar())
     {
-        g.setColour(colour(COLORS.text_dim));
-        g.setFont(heading_font(TYPOGRAPHY.label));
-        g.drawText(slider.getName(), disc, juce::Justification::centred, false);
+        LookAndFeel_V4::drawLinearSlider(g, x, y, width, height, position, min_position, max_position, style, slider);
+        return;
     }
+    const auto area = juce::Rectangle<int>(x, y, width, height).toFloat().reduced(BORDERS.hairline * 0.5f);
+    draw_surface(g, area, BORDERS.corner, colour(COLORS.line), slider.isMouseOverOrDragging(), slider.isMouseButtonDown());
 }
 
 void HandPanLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button, const juce::Colour&,

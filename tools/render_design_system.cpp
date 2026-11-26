@@ -4,18 +4,19 @@
 // The design system on one page, drawn by the plugin's look and feel, saved as a PNG for Anthony to look at: the
 // palette, the type scale, the knobs, the buttons, a combo box, a switch, the colours of the two hands and of what
 // plays. Usage: render_design_system [out.png]
-#include <BinaryData.h>
+#include "png_capture.hpp"
 
 #include "../constants/sizes.hpp"
 #include "../constants/theme.hpp"
 #include "../plugin/style/HandPanLookAndFeel.h"
 #include "../plugin/style/Typefaces.h"
+#include "../plugin/widgets/Knob.h"
 
 using namespace grmh::ui;
 
 namespace
 {
-constexpr int WIDTH = 1100, HEIGHT = 560, MARGIN = 40, SCALE = 2;
+constexpr int WIDTH = 1100, HEIGHT = 560, MARGIN = 40;
 
 juce::String utf8(const char* text) { return juce::String(juce::CharPointer_UTF8(text)); }
 
@@ -25,17 +26,12 @@ public:
     DesignSystemSheet()
     {
         setLookAndFeel(&look_);
-        const char* letters[] = {"V", "W", "K"};
-        const double values[] = {0.8, 0.6, 0.0};
+        const double values[] = {0.8, 0.6};
         for (size_t i = 0; i < knobs_.size(); ++i)
         {
-            auto& knob = knobs_[i];
-            knob.setName(letters[i]);
-            knob.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-            knob.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-            knob.setRange(0.0, 1.0);
-            knob.setValue(values[i], juce::dontSendNotification);
-            addAndMakeVisible(knob);
+            knobs_[i].slider().setRange(0.0, 1.0);
+            knobs_[i].slider().setValue(values[i], juce::dontSendNotification);
+            addAndMakeVisible(knobs_[i]);
         }
         const char* names[] = {"Copy", "Paste", "Clone", "Select"};
         for (size_t i = 0; i < buttons_.size(); ++i)
@@ -61,12 +57,14 @@ public:
     {
         const int top = 260;
         for (size_t i = 0; i < knobs_.size(); ++i)
-            knobs_[i].setBounds(MARGIN + (int)i * (DIMENSIONS.knob + SPACING.xl), top, DIMENSIONS.knob, DIMENSIONS.knob);
+            knobs_[i].setBounds(MARGIN + (int)i * (DIMENSIONS.knob + SPACING.xl), top, DIMENSIONS.knob,
+                                DIMENSIONS.knob + DIMENSIONS.knob_caption);
+        on_lap_.setBounds(MARGIN + 2 * (DIMENSIONS.knob + SPACING.xl), top + (DIMENSIONS.knob - DIMENSIONS.button_height) / 2,
+                          160, DIMENSIONS.button_height);
         for (size_t i = 0; i < buttons_.size(); ++i)
             buttons_[i].setBounds(MARGIN + (int)i * (84 + SPACING.md), top + 90, 84, DIMENSIONS.button_height);
         scale_.setBounds(420, top + 4, 240, DIMENSIONS.field_height);
         left_handed_.setBounds(420, top + 56, 200, DIMENSIONS.button_height);
-        on_lap_.setBounds(420, top + 90, 200, DIMENSIONS.button_height);
     }
 
     void paint(juce::Graphics& g) override
@@ -185,7 +183,7 @@ private:
     }
 
     HandPanLookAndFeel look_;
-    std::array<juce::Slider, 3> knobs_;
+    std::array<Knob, 2> knobs_{Knob("V"), Knob("W")};
     std::array<juce::TextButton, 4> buttons_;
     juce::ComboBox scale_;
     juce::ToggleButton left_handed_, on_lap_;
@@ -195,15 +193,6 @@ private:
 int main(int argc, char** argv)
 {
     juce::ScopedJuceInitialiser_GUI gui;
-    const juce::File out = juce::File::getCurrentWorkingDirectory().getChildFile(argc > 1 ? argv[1]
-                                                                                           : "renders/design_system.png");
-    out.getParentDirectory().createDirectory();
     DesignSystemSheet sheet;
-    const juce::Image image = sheet.createComponentSnapshot(sheet.getLocalBounds(), true, (float)SCALE);
-    out.deleteFile();
-    juce::FileOutputStream stream(out);
-    if (!stream.openedOk() || !juce::PNGImageFormat().writeImageToStream(image, stream))
-        return 1;
-    std::printf("%s\n", out.getFullPathName().toRawUTF8());
-    return 0;
+    return grmh::tools::capture_png(sheet, argc > 1 ? argv[1] : nullptr, "renders/design_system.png");
 }

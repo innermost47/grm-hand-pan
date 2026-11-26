@@ -20,6 +20,18 @@ constexpr int TIME_SIGNATURE_NUMERATOR_DEFAULT = 4;
 constexpr int TIME_SIGNATURE_DENOMINATOR_DEFAULT = 4;
 constexpr int STEPS_PER_BEAT_DEFAULT = 4; // sixteenths in 4/4
 
+// ---- the plugin's own clock (when no host gives a tempo)
+constexpr double TEMPO_DEFAULT = 90.0; // BPM
+constexpr double TEMPO_MIN = 30.0;
+constexpr double TEMPO_MAX = 240.0;
+
+// ---- the most strikes one audio block can hold (two hands, flams, a long block at a fast tempo: far above)
+constexpr int MAX_BLOCK_STRIKES = 256;
+
+// ---- the signatures the roll offers: numerator, denominator, steps in a beat (sixteenths)
+constexpr int SIGNATURES[][3] = {{4, 4, 4}, {3, 4, 4}, {2, 4, 4}, {5, 4, 4},
+                                 {6, 8, 2}, {7, 8, 2}, {9, 8, 2}, {12, 8, 2}};
+
 // ---- a hit's circle (0..1) is a MIDI velocity, from the lightest to the hardest
 constexpr double HIT_SIZE_DEFAULT = 0.5;
 constexpr int HIT_VELOCITY_MIN = 1;

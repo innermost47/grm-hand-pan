@@ -39,11 +39,19 @@ struct Dimensions
 {
     int editor_width = 1280;
     int editor_height = 780;
-    int top_bar_height = 64;
+    int top_bar_height = 76;
     int knob = 44;
+    int knob_caption = 16; // the knob's name, under it
     int button_height = 26;
     int field_height = 30; // a combo box
     int side_column = 300; // the patterns on the left, the arranger on the right
+    int panel_title = 24;  // a panel's title, above its content
+    int transport_button = 30;
+    int position_width = 96; // bar.beat.step
+    int signature_width = 76;
+    int tempo_width = 92;
+    int scale_width = 240;
+    int lap_switch_width = 120;
 };
 
 inline constexpr Spacing SPACING{};

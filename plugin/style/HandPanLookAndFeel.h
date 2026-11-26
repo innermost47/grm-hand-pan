@@ -22,6 +22,10 @@ public:
     void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height, float position, float start_angle,
                           float end_angle, juce::Slider& slider) override;
 
+    // a value dragged up and down on a field (the tempo): the field, its value written on it
+    void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height, float position, float min_position,
+                          float max_position, juce::Slider::SliderStyle style, juce::Slider& slider) override;
+
     void drawButtonBackground(juce::Graphics& g, juce::Button& button, const juce::Colour& background, bool hovered,
                               bool down) override;
     void drawButtonText(juce::Graphics& g, juce::TextButton& button, bool hovered, bool down) override;

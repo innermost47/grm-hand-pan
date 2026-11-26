@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <thread>
 
+#include "../constants/plugin.hpp"
 #include "../constants/scales.hpp"
 #include "../plugin/HandPanProcessor.h"
 #include "support/test_report.hpp"
@@ -56,6 +57,11 @@ int main()
     juce::ScopedJuceInitialiser_GUI juce_init;
     test::TestReport report("plugin host");
     HandPanProcessor plugin;
+    const auto* on_lap = plugin.getParameters().size() > 0
+                             ? dynamic_cast<juce::AudioParameterBool*>(plugin.getParameters()[0])
+                             : nullptr;
+    report.expect(on_lap != nullptr && on_lap->getName(64) == grmh::plugin::PARAM_ON_LAP_NAME && on_lap->get(),
+                  "the handpan is played on the lap by default");
     plugin.setPlayConfigDetails(0, 2, RATE, BLOCK);
     plugin.prepareToPlay(RATE, BLOCK);
 
@@ -85,6 +91,29 @@ int main()
     play(plugin, -1, 0, 400);
     const Heard stranger = play(plugin, 61, 100, 10);
     report.expect(stranger.peak < 0.05 * ding.peak, "a note no field is tuned to adds nothing");
+
+    // the roll's pattern plays on the plugin's own clock, without a MIDI note
+    play(plugin, -1, 0, 400);
+    Pattern pattern;
+    PatternHit hit;
+    hit.field = 0;
+    hit.size = 0.8;
+    pattern.hits = {hit};
+    plugin.set_pattern(pattern);
+    plugin.transport().play();
+    const Heard rolled = play(plugin, -1, 0, 40);
+    plugin.transport().stop();
+    report.expect(rolled.finite && rolled.peak > 1e-3, "the roll's pattern plays when Play is pressed");
+
+    // the volume
+    play(plugin, -1, 0, 400);
+    auto* volume = plugin.parameters().getParameter(grmh::plugin::PARAM_VOLUME);
+    volume->setValueNotifyingHost(volume->convertTo0to1(-20.0f));
+    play(plugin, -1, 0, 4); // the gain glides there
+    const Heard quiet = play(plugin, D_KURD[0], 100, 40);
+    std::printf("  ding at -20 dB: %.1f dB under\n", 20.0 * std::log10(ding.peak / quiet.peak));
+    report.expect(std::fabs(20.0 * std::log10(ding.peak / quiet.peak) - 20.0) < 0.5, "V at -20 dB: 20 dB quieter");
+    volume->setValueNotifyingHost(volume->convertTo0to1(0.0f));
 
     // stop and play again
     plugin.releaseResources();

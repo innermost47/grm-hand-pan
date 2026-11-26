@@ -43,6 +43,7 @@ if(GRMH_BUILD_TESTS)
     grmh_add_core_test(test_finger_click finger_click)
     grmh_add_core_test(test_layout field_layout)
     grmh_add_core_test(test_pattern pattern_sequencer)
+    grmh_add_core_test(test_transport transport_clock)
 
     # the offline tools: the core's sound to a WAV file for the ear, and the probes of the networks
     foreach(tool render_scale render_melody probe_click probe_sympathy measure_recordings)
@@ -83,7 +84,12 @@ if(GRMH_BUILD_PLUGIN)
         plugin/HandPanProcessor.cpp
         plugin/SolverThread.cpp
         plugin/style/HandPanLookAndFeel.cpp
-        plugin/style/Typefaces.cpp)
+        plugin/HandPanEditor.cpp
+        plugin/style/Typefaces.cpp
+        plugin/views/TopBar.cpp
+        plugin/widgets/Knob.cpp
+        plugin/widgets/Panel.cpp
+        plugin/widgets/TransportButton.cpp)
 
     target_compile_definitions(GRMHandPan PUBLIC
         JUCE_WEB_BROWSER=0
@@ -118,8 +124,10 @@ if(GRMH_BUILD_PLUGIN)
 
         grmh_add_plugin_test(plugin_host_test plugin_as_hosted)
         grmh_add_plugin_test(test_design_system design_system)
+        grmh_add_plugin_test(test_editor plugin_editor)
 
         # the interface drawn to a PNG for Anthony's eye
         grmh_add_plugin_executable(tools render_design_system)
+        grmh_add_plugin_executable(tools render_editor)
     endif()
 endif()
