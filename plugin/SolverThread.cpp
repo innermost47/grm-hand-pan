@@ -53,8 +53,10 @@ void SolverThread::run()
             {
                 last_settings_ = settings;
                 last_rate_ = rate;
+                solving_.store(true);
                 last_model_ = std::make_unique<grmh::Model>(grmh::solve_instrument(settings, rate));
                 post(last_model_->sound());
+                solving_.store(false);
             }
             else if (attempted && last_model_ != nullptr && settings.stereo_width != last_settings_.stereo_width)
             {
@@ -70,6 +72,7 @@ void SolverThread::run()
             // the audio keeps the last model it took; these settings are not tried again
             juce::Logger::writeToLog(juce::String("GRM Hand Pan: the instrument could not be solved: ") + e.what());
             last_model_.reset(); // nothing of an older instrument to patch
+            solving_.store(false);
         }
         wait(grmh::plugin::SOLVER_PERIOD_MS);
     }

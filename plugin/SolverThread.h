@@ -25,6 +25,8 @@ public:
 
     // true once a first model has been posted
     bool ready() const { return ready_.load(); }
+    // true while the instrument is being solved (the first calibrations, a change of the lap...)
+    bool solving() const { return solving_.load() || !ready_.load(); }
 
     // any thread but the audio one: the last model posted (null before the first), to render offline
     std::shared_ptr<const grmh::SoundModel> shown_model() const
@@ -43,6 +45,7 @@ private:
     grmh::Mailbox<grmh::SoundModel>& models_;
     std::atomic<double> sample_rate_{0.0};
     std::atomic<bool> ready_{false};
+    std::atomic<bool> solving_{false};
     mutable std::mutex shown_lock_; // never taken by the audio thread
     std::shared_ptr<const grmh::SoundModel> shown_;
 

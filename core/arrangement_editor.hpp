@@ -32,8 +32,10 @@ public:
 
     static void remove(Arrangement& arrangement, int index)
     {
-        if (valid(arrangement, index))
-            arrangement.blocks.erase(arrangement.blocks.begin() + index);
+        if (!valid(arrangement, index))
+            return;
+        arrangement.blocks.erase(arrangement.blocks.begin() + index);
+        select(arrangement, -1, -1);
     }
 
     // block `from` put at `to` (its index once moved)
@@ -45,7 +47,22 @@ public:
         arrangement.blocks.erase(arrangement.blocks.begin() + from);
         to = std::clamp(to, 0, (int)arrangement.blocks.size());
         arrangement.blocks.insert(arrangement.blocks.begin() + to, block);
+        select(arrangement, to, to);
     }
+
+    // the blocks from `first` to `last` selected (in either order; -1: none)
+    static void select(Arrangement& arrangement, int first, int last)
+    {
+        if (!valid(arrangement, first) || !valid(arrangement, last))
+        {
+            arrangement.selected_first = arrangement.selected_last = -1;
+            return;
+        }
+        arrangement.selected_first = std::min(first, last);
+        arrangement.selected_last = std::max(first, last);
+    }
+
+    static void set_loop(Arrangement& arrangement, bool loop) { arrangement.loop = loop; }
 
     static void set_count(Arrangement& arrangement, int index, int count)
     {

@@ -18,6 +18,7 @@ using namespace grmh::ui;
 TopBar::TopBar(HandPanProcessor& processor) : processor_(processor)
 {
     auto& parameters = processor_.parameters();
+    addChildComponent(loader_);
     for (juce::Component* c : {(juce::Component*)&volume_, (juce::Component*)&width_, (juce::Component*)&on_lap_,
                                (juce::Component*)&play_, (juce::Component*)&pause_, (juce::Component*)&stop_,
                                (juce::Component*)&position_, (juce::Component*)&signature_, (juce::Component*)&scale_})
@@ -102,6 +103,7 @@ void TopBar::refresh()
 {
     if (processor_.pattern_version() != shown_version_)
         show_pattern();
+    loader_.set_active(processor_.solving());
     const Transport& transport = processor_.transport();
     const bool playing = transport.shown_playing();
     const SongPosition at = song_position(transport.shown_beat(), processor_.pattern());
@@ -134,7 +136,9 @@ void TopBar::resized()
     const auto centred = [&](juce::Rectangle<int> r, int height) { return r.withSizeKeepingCentre(r.getWidth(), height); };
 
     // left: the name, V, W, on the lap
-    title_area_ = area.removeFromLeft(DIMENSIONS.title_width);
+    auto title = area.removeFromLeft(DIMENSIONS.title_width);
+    title_area_ = title.withTrimmedBottom(DIMENSIONS.loader_height);
+    loader_.setBounds(title.removeFromBottom(DIMENSIONS.loader_height + SPACING.lg).withTrimmedBottom(SPACING.lg));
     area.removeFromLeft(SPACING.lg);
     const int knob_height = DIMENSIONS.knob + DIMENSIONS.knob_caption;
     const int knob_centre_y = centre_y - DIMENSIONS.knob_caption / 2; // the knob and its name, centred together

@@ -33,7 +33,7 @@ Builds for **Windows** and **Linux** (VST3 and standalone) are attached to each
 - **Linux**: copy the `GRM Hand Pan.vst3` folder to `~/.vst3`, or run the standalone `GRM Hand Pan`.
 
 The first time it loads, the instrument calibrates itself on its measurements: it stays silent for about 15 seconds,
-then plays.
+then plays. A loader under its name turns while the instrument is being solved.
 
 ### The Hand Pan Roll
 
@@ -52,13 +52,14 @@ then plays.
   length (1 to 16 bars); a right click renames, copies, pastes or clears one.
 - **The arranger**, on the right: the song as blocks read from the top down, each a pattern played a number of times
   (its letter picks the variation, A2 to B2...) or a silence in the signature you choose. Drag a pattern in from the
-  left, drag a block to move it, Ctrl + Z to undo. **Song** plays it instead of the pattern being edited.
+  left, drag a block to move it, Ctrl + Z to undo. **Song** plays it instead of the pattern being edited, the block
+  playing in blue; **Loop** plays the blocks selected (click, Shift + click), or the whole song, over and over.
 - **MIDI**: by default the keys play notes (**D3 A3 Bb3 C4 D4 E4 F4 G4 A4**, each at its velocity; other notes are
   silent). Switched to **Keys play patterns**, the 64 keys from C1 (middle C = C3) play the 64 patterns, bank after
   bank, each from the next bar line while its key is held.
 - **Export**: the pattern being edited, or the song, to a 24-bit stereo WAV file.
 - **Settings**: the volume (V), the stereo width (W), the instrument **on the lap** (on by default), the tempo (in
-  the standalone; in a host, the host's).
+  the standalone; in a host, the host's). **Space** plays and stops.
 
 Everything (patterns, song, hands) is saved with your project.
 
@@ -226,7 +227,7 @@ error before it was kept.
 | `pattern_editing` | two strikes a step at most, moving and resizing a selection, copy, paste, clone, undo |
 | `pattern_library` | the banks, a pattern's length and signature |
 | `pattern_player` | a pattern asked for starts on the next bar line, let go it stops, whatever the host's blocks |
-| `arrangement` | the song's blocks one after the other, repeats, silences in any signature, played once |
+| `arrangement` | the song's blocks one after the other, repeats, silences in any signature, played once, the loop |
 | `design_system` | the typefaces, text contrast (WCAG), the two hands' colours |
 | `plugin_as_hosted` | the plugin called as a host would: MIDI to sound, stereo, the roll, the volume, keys playing patterns, the song, the WAV export, state |
 | `plugin_editor` | the window: knobs and parameters, the transport, drawing with the mouse and the shortcuts, the banks, the arranger, the session saved bit for bit |

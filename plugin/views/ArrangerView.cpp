@@ -25,11 +25,14 @@ ArrangerView::ArrangerView(HandPanProcessor& processor) : processor_(processor)
     add_rest_.onClick = [this] { add_rest(); };
     export_.setTooltip("Write the song to a WAV file");
     export_.onClick = [this] { AudioExporter::choose_and_export(processor_, AudioExporter::What::song); };
+    loop_.setButtonText("Loop");
+    loop_.setTooltip("Play the blocks selected (click, Shift + click), or the whole song, over and over");
+    loop_.onClick = [this] { set_loop(loop_.getToggleState()); };
     for (juce::Component* c : {(juce::Component*)&song_, (juce::Component*)&add_pattern_, (juce::Component*)&add_rest_,
-                               (juce::Component*)&export_, (juce::Component*)&viewport_})
+                               (juce::Component*)&loop_, (juce::Component*)&export_, (juce::Component*)&viewport_})
         addAndMakeVisible(c);
     for (juce::Button* b : {(juce::Button*)&song_, (juce::Button*)&add_pattern_, (juce::Button*)&add_rest_,
-                            (juce::Button*)&export_})
+                            (juce::Button*)&loop_, (juce::Button*)&export_})
         b->setMouseClickGrabsKeyboardFocus(false);
     setWantsKeyboardFocus(true);
     viewport_.setViewedComponent(&list_, false);
@@ -151,13 +154,33 @@ void ArrangerView::edit(int block)
         processor_.select_pattern(blocks[(size_t)block].slot);
 }
 
+void ArrangerView::set_loop(bool loop)
+{
+    change([loop](Arrangement& a) { ArrangementEditor::set_loop(a, loop); });
+}
+
+// a selection is not a change of the song: never in the history
+void ArrangerView::select(int block, bool extend)
+{
+    Arrangement arrangement = processor_.arrangement();
+    const int anchor = extend && arrangement.selected_first >= 0 ? arrangement.selected_first : block;
+    ArrangementEditor::select(arrangement, anchor, block);
+    if (arrangement != processor_.arrangement())
+        processor_.set_arrangement(arrangement);
+    if (!extend)
+        edit(block);
+    refresh();
+}
+
 // ------------------------------------------------------------------ the blocks
 
 int ArrangerView::playing_block() const
 {
     if (!processor_.song_mode() || !processor_.transport().shown_playing())
         return -1;
-    return ArrangementCompiler::block_at(processor_.song_spans(), processor_.transport().shown_beat());
+    const auto spans = processor_.song_spans();
+    return ArrangementCompiler::block_at(
+        spans, ArrangementCompiler::song_place(processor_.arrangement(), spans, processor_.transport().shown_beat()));
 }
 
 // a row a block; the rows past the last block are hidden, never destroyed (a block removed by its own row's click
@@ -173,7 +196,7 @@ void ArrangerView::rebuild()
         row->on_less = [this, i] { change_count(i, -1); };
         row->on_more = [this, i] { change_count(i, 1); };
         row->on_remove = [this, i] { remove(i); };
-        row->on_select = [this, i] { edit(i); };
+        row->on_select = [this, i](bool extend) { select(i, extend); };
         row->on_drag = [this, i](const juce::MouseEvent& e)
         {
             drop_index_ = index_at(e.getEventRelativeTo(this).getPosition().y);
@@ -202,23 +225,26 @@ void ArrangerView::refresh()
         rebuild();
     }
     const PatternLibrary& library = processor_.library();
-    const auto& blocks = processor_.arrangement().blocks;
+    const Arrangement& arrangement = processor_.arrangement();
+    const auto& blocks = arrangement.blocks;
     const int playing = playing_block();
+    loop_.setToggleState(arrangement.loop, juce::dontSendNotification);
     for (size_t i = 0; i < blocks.size() && i < rows_.size(); ++i)
     {
         const ArrangementBlock& b = blocks[i];
         const juce::String count = juce::String(juce::CharPointer_UTF8("\xc3\x97")) + juce::String(b.count);
+        const bool selected = (int)i >= arrangement.selected_first && (int)i <= arrangement.selected_last;
         if (b.rest)
             rows_[i]->show({}, "Silence  " + juce::String(b.signature.numerator) + "/" +
                                    juce::String(b.signature.denominator) + (b.count == 1 ? "  (1 bar)" : "  (" +
                                    juce::String(b.count) + " bars)"),
-                           count, false, (int)i == playing);
+                           count, false, (int)i == playing, selected);
         else
             rows_[i]->show(juce::String::charToString((juce::juce_wchar)PatternLibrary::bank_letter(b.slot.bank)),
                            juce::String(library.name(b.slot)) + "  (" +
                                juce::String::charToString((juce::juce_wchar)PatternLibrary::bank_letter(b.slot.bank)) +
                                juce::String(b.slot.slot + 1) + ")",
-                           count, b.slot == library.current(), (int)i == playing);
+                           count, b.slot == library.current(), (int)i == playing, selected);
     }
     // the roll follows the block playing
     if (playing != followed_block_)
@@ -240,7 +266,9 @@ void ArrangerView::resized()
     header.removeFromRight(SPACING.sm);
     add_pattern_.setBounds(header.removeFromRight(DIMENSIONS.arranger_button));
     area.removeFromTop(SPACING.sm);
-    export_.setBounds(area.removeFromTop(DIMENSIONS.button_height).removeFromRight(DIMENSIONS.arranger_button));
+    auto second = area.removeFromTop(DIMENSIONS.button_height);
+    loop_.setBounds(second.removeFromLeft(DIMENSIONS.arranger_button));
+    export_.setBounds(second.removeFromRight(DIMENSIONS.arranger_button));
     area.removeFromTop(SPACING.lg);
     viewport_.setBounds(area);
     layout_rows();

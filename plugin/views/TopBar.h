@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Anthony Charretier
 //
-// The top of the editor (design/maquette.png): on the left the plugin's name, the volume (V), the stereo width (W) and the instrument on
+// The top of the editor (design/maquette.png): on the left the plugin's name (a loader under it while the instrument
+// is being solved), the volume (V), the stereo width (W) and the instrument on
 // the lap; in the middle the transport (play, pause, stop: the host's own transport when it plays), where the song is
 // (bar.beat.step), the pattern's signature and its length in bars, and the tempo (the plugin's own in the standalone, the host's otherwise);
 // on the right the scale. What moves is refreshed at the screen's rhythm (VBlankAttachment).
@@ -10,6 +11,7 @@
 #include "../HandPanProcessor.h"
 #include "../JuceHeader.h"
 #include "../widgets/Knob.h"
+#include "../widgets/LoadingIndicator.h"
 #include "../widgets/TransportButton.h"
 
 class TopBar : public juce::Component
@@ -19,12 +21,13 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
+    void refresh(); // at every frame (VBlankAttachment)
+    const LoadingIndicator& loader() const { return loader_; } // for tests
 
 private:
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
 
-    void refresh(); // at every frame
     void choose_signature();
     void choose_bars();
     void show_pattern(); // the signature and the bars of the pattern being edited
@@ -38,6 +41,7 @@ private:
     juce::Label position_, tempo_shown_;
     juce::Slider tempo_{juce::Slider::LinearBarVertical, juce::Slider::TextBoxLeft};
     juce::ComboBox signature_, bars_, scale_;
+    LoadingIndicator loader_; // under the name, while the instrument is being solved
     int shown_version_ = -1;
     juce::Rectangle<int> title_area_; // where the plugin's name is written
     std::unique_ptr<SliderAttachment> volume_attachment_, width_attachment_, tempo_attachment_;

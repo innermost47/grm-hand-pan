@@ -99,6 +99,7 @@ if(GRMH_BUILD_PLUGIN)
         plugin/views/TopBar.cpp
         plugin/widgets/ArrangementRow.cpp
         plugin/widgets/Knob.cpp
+        plugin/widgets/LoadingIndicator.cpp
         plugin/widgets/Panel.cpp
         plugin/widgets/PatternSlotButton.cpp
         plugin/widgets/RollToolbar.cpp

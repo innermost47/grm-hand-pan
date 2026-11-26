@@ -6,7 +6,8 @@
 // pattern being edited; the block playing shows in vermilion, and the roll follows its pattern. "+ Pattern" adds the
 // pattern being edited, "+ Rest" a bar of silence; a pattern dragged from the zone on the left is dropped where it
 // falls; a block dragged moves. On a block: its letter turns to the next variation (A2 -> B2), − / + play it fewer or
-// more times, × removes it, a click edits its pattern (on a silence: chooses its bars' signature). Ctrl + Z undoes,
+// more times, × removes it, a click selects it and edits its pattern (on a silence: chooses its bars' signature),
+// Shift + click selects up to it; "Loop" plays the blocks selected (or the whole song) over and over. Ctrl + Z undoes,
 // Ctrl + Shift + Z or Ctrl + Y redoes. "Export" writes the song to a WAV file. The list scrolls. Refreshed at the
 // screen's rhythm (VBlankAttachment).
 #pragma once
@@ -42,6 +43,8 @@ public:
     void move(int from, int to);
     void edit(int block);
     void set_rest_signature(int block, grmh::TimeSignature signature);
+    void set_loop(bool loop);
+    void select(int block, bool extend); // a click on a block (extend: Shift held)
     void undo();
     void redo();
 
@@ -64,7 +67,7 @@ private:
     int playing_block() const;         // -1: none
 
     HandPanProcessor& processor_;
-    juce::ToggleButton song_;
+    juce::ToggleButton song_, loop_;
     juce::TextButton add_pattern_{"+ Pattern"}, add_rest_{"+ Rest"}, export_{"Export"};
     grmh::History<grmh::Arrangement> history_;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> song_attachment_;

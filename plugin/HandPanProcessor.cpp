@@ -123,8 +123,9 @@ double HandPanProcessor::pattern_origin(double beat) const
     if (!song_mode())
         return 0.0;
     const auto spans = song_spans();
-    const int block = ArrangementCompiler::block_at(spans, beat);
-    return block >= 0 ? spans[(size_t)block].start : 0.0;
+    const double place = ArrangementCompiler::song_place(arrangement_, spans, beat);
+    const int block = ArrangementCompiler::block_at(spans, place);
+    return block >= 0 ? beat - (place - spans[(size_t)block].start) : 0.0;
 }
 
 // what plays along the song: the arrangement (Song on), the patterns the keys hold (keys play patterns), or the

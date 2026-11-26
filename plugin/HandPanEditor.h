@@ -22,6 +22,8 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
+    // Space plays or stops the plugin's own clock, wherever the keyboard is (the views pass on what they do not use)
+    bool keyPressed(const juce::KeyPress& key) override;
 
     TopBar& top_bar() { return top_bar_; }             // for tests
     SequencerView& sequencer_view() { return roll_; }   // for tests
@@ -36,6 +38,7 @@ private:
     PatternsView bank_;
     ArrangerView song_;
     juce::TooltipWindow tooltips_{this};
+    HandPanProcessor& processor_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HandPanEditor)
 };

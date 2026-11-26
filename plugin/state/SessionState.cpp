@@ -3,6 +3,7 @@
 #include "SessionState.h"
 
 #include "../../constants/state.hpp"
+#include "../../core/arrangement_editor.hpp"
 
 using namespace grmh;
 
@@ -72,6 +73,9 @@ PatternSlot SessionState::read_slot(const juce::ValueTree& tree)
 juce::ValueTree SessionState::write_arrangement(const Arrangement& arrangement)
 {
     juce::ValueTree tree(state::ARRANGEMENT);
+    tree.setProperty(state::LOOP, arrangement.loop, nullptr)
+        .setProperty(state::SELECTED_FIRST, arrangement.selected_first, nullptr)
+        .setProperty(state::SELECTED_LAST, arrangement.selected_last, nullptr);
     for (const ArrangementBlock& block : arrangement.blocks)
     {
         juce::ValueTree saved(state::BLOCK);
@@ -103,6 +107,9 @@ Arrangement SessionState::read_arrangement(const juce::ValueTree& tree)
         if (block.rest || PatternLibrary::valid(block.slot))
             arrangement.blocks.push_back(block);
     }
+    arrangement.loop = tree.getProperty(state::LOOP);
+    ArrangementEditor::select(arrangement, tree.getProperty(state::SELECTED_FIRST, -1),
+                              tree.getProperty(state::SELECTED_LAST, -1));
     return arrangement;
 }
 

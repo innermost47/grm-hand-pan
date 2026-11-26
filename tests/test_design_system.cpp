@@ -91,6 +91,8 @@ void check_hands(test::TestReport& report)
     report.expect(hue_gap(right, left) >= 90.0f, "the two hands are told apart by their hue");
     report.expect(hue_gap(playing, left) >= 90.0f && playing.getSaturation() > right.getSaturation() + 0.2f,
                   "what plays is told apart from both hands: vermilion, more saturated than the cherry blossom");
+    const juce::Colour song(COLORS.song_playing), accent(COLORS.accent);
+    report.expect(hue_gap(song, accent) >= 90.0f, "the song's block playing stands apart from the sakura edited one");
 }
 } // namespace
 

@@ -53,6 +53,8 @@ struct Dimensions
     int scale_width = 240;
     int lap_switch_width = 120;
     int title_width = 170; // the plugin's name, at the left of the top bar
+    int loader_size = 14;  // the loader's circle, under the name
+    int loader_height = 18;
     int roll_header = 30;  // the roll's buttons and switch, above it
     int toolbar_button = 84;
     int slot_height = 34; // a pattern of a bank

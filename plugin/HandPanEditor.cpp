@@ -8,8 +8,10 @@
 using namespace grmh::ui;
 
 HandPanEditor::HandPanEditor(HandPanProcessor& processor)
-    : juce::AudioProcessorEditor(processor), top_bar_(processor), roll_(processor), bank_(processor), song_(processor)
+    : juce::AudioProcessorEditor(processor), top_bar_(processor), roll_(processor), bank_(processor), song_(processor),
+      processor_(processor)
 {
+    setWantsKeyboardFocus(true);
     setLookAndFeel(&look_);
     for (juce::Component* c : {(juce::Component*)&top_bar_, (juce::Component*)&patterns_,
                                (juce::Component*)&sequencer_, (juce::Component*)&arranger_})
@@ -21,6 +23,18 @@ HandPanEditor::HandPanEditor(HandPanProcessor& processor)
 }
 
 HandPanEditor::~HandPanEditor() { setLookAndFeel(nullptr); }
+
+bool HandPanEditor::keyPressed(const juce::KeyPress& key)
+{
+    if (key != juce::KeyPress(juce::KeyPress::spaceKey))
+        return false;
+    grmh::Transport& transport = processor_.transport();
+    if (transport.shown_playing())
+        transport.stop();
+    else
+        transport.play();
+    return true;
+}
 
 void HandPanEditor::paint(juce::Graphics& g) { g.fillAll(HandPanLookAndFeel::colour(COLORS.window)); }
 

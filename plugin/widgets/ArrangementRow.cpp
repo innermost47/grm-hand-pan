@@ -15,15 +15,17 @@ juce::Colour colour(std::uint32_t argb) { return HandPanLookAndFeel::colour(argb
 } // namespace
 
 void ArrangementRow::show(const juce::String& letter, const juce::String& name, const juce::String& count, bool edited,
-                          bool playing)
+                          bool playing, bool selected)
 {
-    if (letter == letter_ && name == name_ && count == count_ && edited == edited_ && playing == playing_)
+    if (letter == letter_ && name == name_ && count == count_ && edited == edited_ && playing == playing_ &&
+        selected == selected_)
         return;
     letter_ = letter;
     name_ = name;
     count_ = count;
     edited_ = edited;
     playing_ = playing;
+    selected_ = selected;
     repaint();
 }
 
@@ -66,8 +68,15 @@ void ArrangementRow::paint(juce::Graphics& g)
     const auto bounds = getLocalBounds().toFloat().reduced(BORDERS.hairline * 0.5f);
     g.setColour(colour(COLORS.raised));
     g.fillRoundedRectangle(bounds, BORDERS.corner);
-    g.setColour(colour(playing_ ? COLORS.playing : (edited_ ? COLORS.accent : COLORS.line)));
+    g.setColour(colour(playing_ ? COLORS.song_playing : (edited_ ? COLORS.accent : COLORS.line)));
     g.drawRoundedRectangle(bounds, BORDERS.corner, playing_ || edited_ ? BORDERS.ring : BORDERS.hairline);
+    if (selected_)
+    {
+        g.setColour(colour(COLORS.accent));
+        const float inset = (float)SPACING.sm;
+        g.fillRoundedRectangle(bounds.withWidth(BORDERS.corner).withTrimmedTop(inset).withTrimmedBottom(inset),
+                               BORDERS.corner * 0.5f);
+    }
 
     const Typefaces& faces = Typefaces::get();
     if (letter_.isNotEmpty())
@@ -101,6 +110,7 @@ void ArrangementRow::mouseDown(const juce::MouseEvent& event)
 {
     pressed_ = part_at(event.getPosition());
     dragged_ = false;
+    extend_ = event.mods.isShiftDown();
 }
 
 void ArrangementRow::mouseDrag(const juce::MouseEvent& event)
@@ -120,6 +130,12 @@ void ArrangementRow::mouseUp(const juce::MouseEvent& event)
             on_drop(event);
         return;
     }
+    if (pressed_ == Part::body)
+    {
+        if (on_select)
+            on_select(extend_);
+        return;
+    }
     const std::function<void()>* action = nullptr;
     switch (pressed_)
     {
@@ -136,8 +152,7 @@ void ArrangementRow::mouseUp(const juce::MouseEvent& event)
         action = &on_remove;
         break;
     case Part::body:
-        action = &on_select;
-        break;
+        return;
     }
     if (*action)
         (*action)();

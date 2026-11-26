@@ -29,8 +29,14 @@ struct ArrangementBlock
 struct Arrangement
 {
     std::vector<ArrangementBlock> blocks;
+    bool loop = false;                     // the blocks selected (or the whole song) played over and over
+    int selected_first = -1, selected_last = -1; // the blocks selected, inclusive; -1: none
 
-    bool operator==(const Arrangement& o) const { return blocks == o.blocks; }
+    bool operator==(const Arrangement& o) const
+    {
+        return blocks == o.blocks && loop == o.loop && selected_first == o.selected_first &&
+               selected_last == o.selected_last;
+    }
     bool operator!=(const Arrangement& o) const { return !(*this == o); }
 };
 

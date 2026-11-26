@@ -31,11 +31,13 @@ struct ColorScheme
 {
     std::uint32_t window, panel, raised, line, text, text_dim, muted, accent, accent_deep, right_hand, right_hand_deep,
         left_hand, left_hand_deep, playing;
+    std::uint32_t song_playing; // the song's block playing, next to sakura ones: its complementary hanada (Anthony)
 
     static constexpr ColorScheme from(const Palette& p)
     {
         return {p.sumi_deep, p.sumi,   p.sumi_raised, p.sumi_line,   p.washi,  p.washi_dim,   p.stone,
-                p.sakura,    p.sakura_deep, p.sakura, p.sakura_deep, p.hanada, p.hanada_deep, p.shu};
+                p.sakura,    p.sakura_deep, p.sakura, p.sakura_deep, p.hanada, p.hanada_deep, p.shu,
+                p.hanada};
     }
 };
 
@@ -75,4 +77,12 @@ struct Glow
 };
 
 inline constexpr Glow GLOW{};
+
+// what moves on its own
+struct Motion
+{
+    double loader_turn_seconds = 1.2; // the loader's arc goes round in that time
+};
+
+inline constexpr Motion MOTION{};
 } // namespace grmh::ui

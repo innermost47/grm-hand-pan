@@ -62,6 +62,8 @@ int main(int argc, char** argv)
     grmh::ArrangementEditor::add_pattern(song, {1, 1}); // Verse's variation B
     grmh::ArrangementEditor::add_rest(song);
     grmh::ArrangementEditor::add_pattern(song, {0, 2});
+    grmh::ArrangementEditor::select(song, 1, 2); // Verse and its variation, looped
+    grmh::ArrangementEditor::set_loop(song, true);
     processor.set_arrangement(song);
     play_to(processor, 3.0); // the third beat: the flam on E4 glows
     std::unique_ptr<juce::AudioProcessorEditor> editor(processor.createEditor());

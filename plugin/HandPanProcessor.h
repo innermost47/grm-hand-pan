@@ -52,6 +52,8 @@ public:
 
     // true once the instrument is solved and playing (for hosts and tests)
     bool instrument_ready() const { return solver_.ready(); }
+    // true while the instrument is being solved (the interface shows it)
+    bool solving() const { return solver_.solving(); }
 
     juce::AudioProcessorValueTreeState& parameters() { return parameters_; }
     grmh::Transport& transport() { return transport_; }

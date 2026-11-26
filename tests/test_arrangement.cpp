@@ -60,6 +60,36 @@ void check_song(test::TestReport& report)
     report.expect(heard == 3, "played once: nothing after its end");
 }
 
+// the loop: the blocks selected (or the whole song), from the song's start, over and over
+void check_loop(test::TestReport& report)
+{
+    const PatternLibrary lib = library();
+    Arrangement song;
+    ArrangementEditor::add_pattern(song, {0, 0}); // 0-4
+    ArrangementEditor::add_rest(song);            // 4-8
+    ArrangementEditor::add_pattern(song, {0, 1}); // 8-16, E4 at 9
+    ArrangementEditor::set_loop(song, true);
+    const CompiledPattern whole = ArrangementCompiler::compile(song, lib, NOTES, PlayerHands{});
+    report.expect(whole.loop && whole.length_beats == 16.0 && whole.strikes.size() == 2,
+                  "Loop without a selection: the whole song, sixteen beats, over and over");
+
+    ArrangementEditor::select(song, 2, 1); // in either order
+    report.expect(song.selected_first == 1 && song.selected_last == 2, "the silence and A2 selected");
+    const CompiledPattern part = ArrangementCompiler::compile(song, lib, NOTES, PlayerHands{});
+    report.expect(part.loop && part.length_beats == 12.0 && part.strikes.size() == 1 && part.strikes[0].beat == 5.0,
+                  "Loop with a selection: the silence then A2, twelve beats, E4 at 5 from the loop's start");
+    const auto spans = ArrangementCompiler::spans(song, lib);
+    const double place = ArrangementCompiler::song_place(song, spans, 12.0 + 5.0);
+    report.expect(place == 9.0 && ArrangementCompiler::block_at(spans, place) == 2,
+                  "beat 17: the second time round, five beats in: A2, the song's beat 9");
+
+    ArrangementEditor::select(song, 5, 1);
+    report.expect(song.selected_first == -1, "a block that does not exist: nothing selected");
+    ArrangementEditor::select(song, 0, 0);
+    ArrangementEditor::remove(song, 1);
+    report.expect(song.selected_first == -1, "a block removed: the selection let go");
+}
+
 void check_editing(test::TestReport& report)
 {
     Arrangement song;
@@ -98,6 +128,7 @@ int main()
 {
     test::TestReport report("arrangement");
     check_song(report);
+    check_loop(report);
     check_editing(report);
     return report.finish();
 }

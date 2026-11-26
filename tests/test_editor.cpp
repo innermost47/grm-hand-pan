@@ -232,9 +232,42 @@ void check_arranger(test::TestReport& report, HandPanProcessor& processor, HandP
         processor.processBlock(block, none);
     song.refresh();
     report.expect(song.row(1).playing() && !song.row(0).playing() && processor.library().current() == SlotId{1, 4},
-                  "Song on, beat 8.5: B5 plays, in vermilion, and the roll shows it");
+                  "Song on, beat 8.5: B5 plays, in hanada, and the roll shows it");
+
+    // Loop on the first block (A1 twice: 8 beats); at beat 8.5 + 8 the loop is in its second round, A1 again
+    song.select(0, false);
+    song.set_loop(true);
+    report.expect(processor.arrangement().loop && song.row(0).selected() && !song.row(1).selected(),
+                  "A1 selected, Loop on");
+    for (int samples = 0; samples < (int)(8.0 * 60.0 / TEMPO_DEFAULT * 48000.0); samples += 512)
+        processor.processBlock(block, none);
+    song.refresh();
+    report.expect(song.row(0).playing() && !song.row(1).playing(), "Loop on, beat 16.5: A1 plays again, not B5");
+    song.select(1, true);
+    report.expect(song.row(0).selected() && song.row(1).selected(), "Shift + click on B5: A1 and B5 selected");
+
+    juce::MemoryBlock looped;
+    processor.getStateInformation(looped);
+    HandPanProcessor again;
+    again.setStateInformation(looped.getData(), (int)looped.getSize());
+    report.expect(again.arrangement() == processor.arrangement(), "the loop and the selection saved");
+    song.set_loop(false);
     processor.transport().stop();
     song_switch->setValueNotifyingHost(0.0f);
+
+    // Space plays and stops, wherever the keyboard is
+    processor.processBlock(block, none);
+    editor.keyPressed(juce::KeyPress(juce::KeyPress::spaceKey));
+    processor.processBlock(block, none);
+    const bool played = processor.transport().shown_playing();
+    editor.keyPressed(juce::KeyPress(juce::KeyPress::spaceKey));
+    processor.processBlock(block, none);
+    report.expect(played && !processor.transport().shown_playing() && processor.transport().shown_beat() == 0.0,
+                  "Space plays, Space again stops (back to the start)");
+
+    // the loader turns while the instrument is solved
+    editor.top_bar().refresh();
+    report.expect(editor.top_bar().loader().active() == processor.solving(), "the loader shows while it solves");
 }
 } // namespace
 
