@@ -70,6 +70,14 @@ SequencerView::SequencerView(HandPanProcessor& processor) : processor_(processor
 
 void SequencerView::reload()
 {
+    if (processor_.library().current() != shown_slot_)
+    {
+        shown_slot_ = processor_.library().current();
+        history_ = PatternHistory{};
+        selection_.clear();
+        glow_.clear();
+        bottom_ = 0.0;
+    }
     const auto handedness = processor_.hands().handedness;
     left_handed_.setToggleState(handedness == Handedness::left_handed, juce::dontSendNotification);
     columns_ = RollLayout::columns(processor_.notes(), handedness);

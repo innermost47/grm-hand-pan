@@ -8,6 +8,7 @@
 #include "HandPanProcessor.h"
 #include "JuceHeader.h"
 #include "style/HandPanLookAndFeel.h"
+#include "views/PatternsView.h"
 #include "views/SequencerView.h"
 #include "views/TopBar.h"
 #include "widgets/Panel.h"
@@ -23,12 +24,14 @@ public:
 
     TopBar& top_bar() { return top_bar_; }             // for tests
     SequencerView& sequencer_view() { return roll_; }   // for tests
+    PatternsView& patterns_view() { return bank_; }     // for tests
 
 private:
     HandPanLookAndFeel look_; // declared first: outlives the widgets that draw through it
     TopBar top_bar_;
     Panel patterns_{"Patterns"}, sequencer_{"Sequencer"}, arranger_{"Arranger"};
     SequencerView roll_;
+    PatternsView bank_;
     juce::TooltipWindow tooltips_{this};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HandPanEditor)

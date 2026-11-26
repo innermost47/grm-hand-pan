@@ -106,6 +106,7 @@ private:
     juce::Rectangle<int> roll_area_, left_gutter_, right_gutter_, names_area_;
 
     int shown_version_ = -1;
+    grmh::SlotId shown_slot_; // the pattern shown: another one starts a history and a selection of its own
     std::vector<int> columns_;          // each field's column
     std::vector<grmh::Hand> hit_hands_; // each hit's hand
     double bottom_ = 0.0;               // the step at the bottom line

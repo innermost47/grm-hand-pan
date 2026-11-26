@@ -46,6 +46,7 @@ if(GRMH_BUILD_TESTS)
     grmh_add_core_test(test_transport transport_clock)
     grmh_add_core_test(test_roll_layout roll_layout)
     grmh_add_core_test(test_pattern_editing pattern_editing)
+    grmh_add_core_test(test_pattern_library pattern_library)
 
     # the offline tools: the core's sound to a WAV file for the ear, and the probes of the networks
     foreach(tool render_scale render_melody probe_click probe_sympathy measure_recordings)
@@ -88,10 +89,13 @@ if(GRMH_BUILD_PLUGIN)
         plugin/style/HandPanLookAndFeel.cpp
         plugin/HandPanEditor.cpp
         plugin/style/Typefaces.cpp
+        plugin/state/SessionState.cpp
+        plugin/views/PatternsView.cpp
         plugin/views/SequencerView.cpp
         plugin/views/TopBar.cpp
         plugin/widgets/Knob.cpp
         plugin/widgets/Panel.cpp
+        plugin/widgets/PatternSlotButton.cpp
         plugin/widgets/RollToolbar.cpp
         plugin/widgets/TransportButton.cpp)
 

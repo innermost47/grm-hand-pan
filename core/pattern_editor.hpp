@@ -147,6 +147,24 @@ public:
 
     static void clear(Pattern& pattern) { pattern.hits.clear(); }
 
+    // `bars` bars long (one at least); the hits past the new end are removed
+    static void set_bars(Pattern& pattern, int bars)
+    {
+        pattern.bars = std::max(1, bars);
+        const int end = pattern.step_count();
+        pattern.hits.erase(std::remove_if(pattern.hits.begin(), pattern.hits.end(),
+                                          [end](const PatternHit& h) { return h.step >= end; }),
+                           pattern.hits.end());
+    }
+
+    // in another signature (its steps a beat with it); the hits past the new end are removed
+    static void set_signature(Pattern& pattern, TimeSignature signature, int steps_per_beat)
+    {
+        pattern.signature = signature;
+        pattern.steps_per_beat = std::max(1, steps_per_beat);
+        set_bars(pattern, pattern.bars);
+    }
+
 private:
     static bool valid(const Pattern& pattern, int i) { return i >= 0 && i < (int)pattern.hits.size(); }
 };

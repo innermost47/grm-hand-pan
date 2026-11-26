@@ -3,7 +3,7 @@
 //
 // The top of the editor (design/maquette.png): on the left the plugin's name, the volume (V), the stereo width (W) and the instrument on
 // the lap; in the middle the transport (play, pause, stop: the host's own transport when it plays), where the song is
-// (bar.beat.step), the pattern's signature and the tempo (the plugin's own in the standalone, the host's otherwise);
+// (bar.beat.step), the pattern's signature and its length in bars, and the tempo (the plugin's own in the standalone, the host's otherwise);
 // on the right the scale. What moves is refreshed at the screen's rhythm (VBlankAttachment).
 #pragma once
 
@@ -26,6 +26,8 @@ private:
 
     void refresh(); // at every frame
     void choose_signature();
+    void choose_bars();
+    void show_pattern(); // the signature and the bars of the pattern being edited
 
     HandPanProcessor& processor_;
     Knob volume_{"V"}, width_{"W"};
@@ -35,7 +37,8 @@ private:
     TransportButton stop_{TransportButton::Sign::stop, "Stop: back to the start"};
     juce::Label position_, tempo_shown_;
     juce::Slider tempo_{juce::Slider::LinearBarVertical, juce::Slider::TextBoxLeft};
-    juce::ComboBox signature_, scale_;
+    juce::ComboBox signature_, bars_, scale_;
+    int shown_version_ = -1;
     juce::Rectangle<int> title_area_; // where the plugin's name is written
     std::unique_ptr<SliderAttachment> volume_attachment_, width_attachment_, tempo_attachment_;
     std::unique_ptr<ButtonAttachment> on_lap_attachment_;

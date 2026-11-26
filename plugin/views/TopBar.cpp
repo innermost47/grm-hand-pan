@@ -7,6 +7,7 @@
 #include "../../constants/sequencer.hpp"
 #include "../../constants/sizes.hpp"
 #include "../../constants/theme.hpp"
+#include "../../core/pattern_editor.hpp"
 #include "../../core/song_position.hpp"
 #include "../style/HandPanLookAndFeel.h"
 #include "../style/Typefaces.h"
@@ -48,15 +49,16 @@ TopBar::TopBar(HandPanProcessor& processor) : processor_(processor)
         addAndMakeVisible(tempo_shown_);
     }
 
-    const Pattern& pattern = processor_.pattern();
     for (int i = 0; i < (int)std::size(SIGNATURES); ++i)
-    {
         signature_.addItem(juce::String(SIGNATURES[i][0]) + "/" + juce::String(SIGNATURES[i][1]), i + 1);
-        if (SIGNATURES[i][0] == pattern.signature.numerator && SIGNATURES[i][1] == pattern.signature.denominator)
-            signature_.setSelectedId(i + 1, juce::dontSendNotification);
-    }
     signature_.setTooltip("The pattern's time signature");
     signature_.onChange = [this] { choose_signature(); };
+    for (int i = 0; i < (int)std::size(BAR_CHOICES); ++i)
+        bars_.addItem(juce::String(BAR_CHOICES[i]) + (BAR_CHOICES[i] == 1 ? " bar" : " bars"), i + 1);
+    bars_.setTooltip("The pattern's length (shorter: its hits past the end are removed)");
+    bars_.onChange = [this] { choose_bars(); };
+    addAndMakeVisible(bars_);
+    show_pattern();
 
     scale_.addItem(D_KURD_NAME, 1);
     scale_.setSelectedId(1, juce::dontSendNotification);
@@ -70,13 +72,36 @@ void TopBar::choose_signature()
     if (i < 0 || i >= (int)std::size(SIGNATURES))
         return;
     Pattern pattern = processor_.pattern();
-    pattern.signature = {SIGNATURES[i][0], SIGNATURES[i][1]};
-    pattern.steps_per_beat = SIGNATURES[i][2];
+    PatternEditor::set_signature(pattern, {SIGNATURES[i][0], SIGNATURES[i][1]}, SIGNATURES[i][2]);
     processor_.set_pattern(pattern);
+}
+
+void TopBar::choose_bars()
+{
+    const int i = bars_.getSelectedId() - 1;
+    if (i < 0 || i >= (int)std::size(BAR_CHOICES))
+        return;
+    Pattern pattern = processor_.pattern();
+    PatternEditor::set_bars(pattern, BAR_CHOICES[i]);
+    processor_.set_pattern(pattern);
+}
+
+void TopBar::show_pattern()
+{
+    const Pattern& pattern = processor_.pattern();
+    for (int i = 0; i < (int)std::size(SIGNATURES); ++i)
+        if (SIGNATURES[i][0] == pattern.signature.numerator && SIGNATURES[i][1] == pattern.signature.denominator)
+            signature_.setSelectedId(i + 1, juce::dontSendNotification);
+    for (int i = 0; i < (int)std::size(BAR_CHOICES); ++i)
+        if (BAR_CHOICES[i] == pattern.bars)
+            bars_.setSelectedId(i + 1, juce::dontSendNotification);
+    shown_version_ = processor_.pattern_version();
 }
 
 void TopBar::refresh()
 {
+    if (processor_.pattern_version() != shown_version_)
+        show_pattern();
     const Transport& transport = processor_.transport();
     const bool playing = transport.shown_playing();
     const SongPosition at = song_position(transport.shown_beat(), processor_.pattern());
@@ -129,8 +154,9 @@ void TopBar::resized()
     juce::Component* tempo = processor_.standalone() ? (juce::Component*)&tempo_ : (juce::Component*)&tempo_shown_;
     const int button = DIMENSIONS.transport_button;
     const int width = 3 * button + 2 * SPACING.sm + SPACING.xl + DIMENSIONS.position_width + SPACING.md +
-                      DIMENSIONS.signature_width + SPACING.md + DIMENSIONS.tempo_width;
-    auto middle = getLocalBounds().withSizeKeepingCentre(width, getHeight());
+                      DIMENSIONS.signature_width + SPACING.md + DIMENSIONS.bars_width + SPACING.md +
+                      DIMENSIONS.tempo_width;
+    auto middle = area.withSizeKeepingCentre(std::min(width, area.getWidth()), getHeight()); // between left and right
     for (TransportButton* b : {&play_, &pause_, &stop_})
     {
         b->setBounds(centred(middle.removeFromLeft(button), button));
@@ -140,6 +166,8 @@ void TopBar::resized()
     position_.setBounds(centred(middle.removeFromLeft(DIMENSIONS.position_width), DIMENSIONS.field_height));
     middle.removeFromLeft(SPACING.md);
     signature_.setBounds(centred(middle.removeFromLeft(DIMENSIONS.signature_width), DIMENSIONS.field_height));
+    middle.removeFromLeft(SPACING.md);
+    bars_.setBounds(centred(middle.removeFromLeft(DIMENSIONS.bars_width), DIMENSIONS.field_height));
     middle.removeFromLeft(SPACING.md);
     tempo->setBounds(centred(middle.removeFromLeft(DIMENSIONS.tempo_width), DIMENSIONS.field_height));
 }

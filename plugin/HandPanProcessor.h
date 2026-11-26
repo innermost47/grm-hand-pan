@@ -11,6 +11,7 @@
 #include "../core/block_strikes.hpp"
 #include "../core/engine.hpp"
 #include "../core/mailbox.hpp"
+#include "../core/pattern_library.hpp"
 #include "../core/pattern_sequencer.hpp"
 #include "../core/transport.hpp"
 #include "JuceHeader.h"
@@ -54,11 +55,16 @@ public:
     // the tempo of the last block (the host's, or the plugin's own)
     double shown_tempo() const { return shown_tempo_.load(); }
 
-    // message thread: the roll's pattern, and a new one (compiled here, played from the next block); the version
-    // grows at every change, for the views
-    const grmh::Pattern& pattern() const { return pattern_; }
+    // message thread: the pattern being edited (and played), and a new one (compiled here, played from the next
+    // block); the version grows at every change of the patterns, for the views
+    const grmh::Pattern& pattern() const { return library_.pattern(); }
     void set_pattern(const grmh::Pattern& pattern);
     int pattern_version() const { return pattern_version_; }
+    // message thread: every pattern of the banks; another one edited and played; a slot changed (pasted, renamed,
+    // cleared)
+    const grmh::PatternLibrary& library() const { return library_; }
+    void select_pattern(grmh::SlotId id);
+    void set_slot(grmh::SlotId id, const grmh::PatternSlot& slot);
     // message thread: the player's hands (which one is strong), the pattern played again with them
     const grmh::PlayerHands& hands() const { return hands_; }
     void set_hands(const grmh::PlayerHands& hands);
@@ -83,7 +89,7 @@ private:
     void compile_pattern(); // message thread: the pattern and the hands to the audio thread
 
     std::vector<int> notes_;
-    grmh::Pattern pattern_;                          // message thread
+    grmh::PatternLibrary library_;                   // message thread
     grmh::PlayerHands hands_;                        // message thread
     int pattern_version_ = 0;                        // message thread
     grmh::Mailbox<grmh::CompiledPattern> patterns_;  // message thread -> audio thread

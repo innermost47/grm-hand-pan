@@ -7,6 +7,7 @@
 #include "../constants/scales.hpp"
 #include "../core/pattern_compiler.hpp"
 #include "HandPanEditor.h"
+#include "state/SessionState.h"
 
 using namespace grmh;
 
@@ -46,7 +47,21 @@ juce::AudioProcessorValueTreeState::ParameterLayout HandPanProcessor::create_lay
 
 void HandPanProcessor::set_pattern(const Pattern& pattern)
 {
-    pattern_ = pattern;
+    library_.pattern() = pattern;
+    compile_pattern();
+}
+
+void HandPanProcessor::select_pattern(SlotId id)
+{
+    library_.select(id);
+    compile_pattern();
+}
+
+void HandPanProcessor::set_slot(SlotId id, const PatternSlot& slot)
+{
+    if (!PatternLibrary::valid(id))
+        return;
+    library_.slot(id) = slot;
     compile_pattern();
 }
 
@@ -59,7 +74,8 @@ void HandPanProcessor::set_hands(const PlayerHands& hands)
 void HandPanProcessor::compile_pattern()
 {
     ++pattern_version_;
-    patterns_.post(new CompiledPattern{PatternCompiler::compile(pattern_, notes_, hands_), pattern_.length_beats()});
+    const Pattern& pattern = library_.pattern();
+    patterns_.post(new CompiledPattern{PatternCompiler::compile(pattern, notes_, hands_), pattern.length_beats()});
 }
 
 void HandPanProcessor::audition(int note, int velocity)
@@ -182,15 +198,21 @@ juce::AudioProcessorEditor* HandPanProcessor::createEditor() { return new HandPa
 
 void HandPanProcessor::getStateInformation(juce::MemoryBlock& data)
 {
-    if (const auto xml = parameters_.copyState().createXml())
+    juce::ValueTree state = parameters_.copyState();
+    SessionState::write(state, library_, hands_);
+    if (const auto xml = state.createXml())
         copyXmlToBinary(*xml, data);
 }
 
 void HandPanProcessor::setStateInformation(const void* data, int size)
 {
-    if (const auto xml = getXmlFromBinary(data, size))
-        if (xml->hasTagName(parameters_.state.getType()))
-            parameters_.replaceState(juce::ValueTree::fromXml(*xml));
+    const auto xml = getXmlFromBinary(data, size);
+    if (xml == nullptr || !xml->hasTagName(parameters_.state.getType()))
+        return;
+    juce::ValueTree state = juce::ValueTree::fromXml(*xml);
+    SessionState::read(state, library_, hands_); // and takes its own part out
+    parameters_.replaceState(state);
+    compile_pattern();
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new HandPanProcessor(); }

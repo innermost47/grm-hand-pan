@@ -55,6 +55,9 @@ struct Dimensions
     int title_width = 170; // the plugin's name, at the left of the top bar
     int roll_header = 30;  // the roll's buttons and switch, above it
     int toolbar_button = 84;
+    int slot_height = 34; // a pattern of a bank
+    int slot_number = 22; // its number, before its name
+    int bars_width = 96;  // the pattern's bar count, in the top bar
     int roll_names = 28;   // the fields' names, under it
     int roll_gutter = 36;  // bars and beats on the left, LEDs on the right
 };

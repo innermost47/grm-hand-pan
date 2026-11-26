@@ -52,6 +52,8 @@ int main(int argc, char** argv)
     juce::ScopedJuceInitialiser_GUI gui;
     HandPanProcessor processor;
     processor.set_pattern(demo_pattern());
+    processor.set_slot({0, 1}, {"Verse", demo_pattern()});
+    processor.set_slot({0, 2}, {"Fill", demo_pattern()});
     play_to(processor, 3.0); // the third beat: the flam on E4 glows
     std::unique_ptr<juce::AudioProcessorEditor> editor(processor.createEditor());
     dynamic_cast<HandPanEditor&>(*editor).sequencer_view().refresh();

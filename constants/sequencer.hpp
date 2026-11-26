@@ -40,6 +40,11 @@ constexpr int HIT_VELOCITY_MAX = 127;
 // ---- two hands, a finger each: no more hits at one step
 constexpr int MAX_HITS_PER_STEP = 2;
 
+// ---- the patterns: banks (A, B, C, D) of patterns each, the bar counts a pattern can have
+constexpr int BANKS = 4;
+constexpr int PATTERNS_PER_BANK = 16;
+constexpr int BAR_CHOICES[] = {1, 2, 3, 4, 6, 8, 12, 16};
+
 // ---- the changes the roll can undo
 constexpr int HISTORY_LIMIT = 200;
 

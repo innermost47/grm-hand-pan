@@ -116,6 +116,54 @@ void check_drawing(test::TestReport& report, HandPanProcessor& processor, Sequen
     roll.clear();
     report.expect(hits().empty(), "Clear with nothing selected: the whole pattern");
 }
+
+// the banks, a pattern's length, and the session saved then loaded into another plugin
+void check_patterns(test::TestReport& report, HandPanProcessor& processor, HandPanEditor& editor)
+{
+    PatternsView& bank = editor.patterns_view();
+    SequencerView& roll = editor.sequencer_view();
+    click(roll, roll.field_point(1, 3));
+    report.expect(processor.library().used({0, 0}), "a hit drawn: the pattern A1 is used");
+
+    bank.show_bank(1);
+    bank.choose(4);
+    roll.refresh();
+    report.expect(processor.library().current() == SlotId{1, 4} && processor.pattern().hits.empty() &&
+                      roll.selection().empty(),
+                  "B5 chosen: an empty pattern edited, nothing selected");
+    click(roll, roll.field_point(0, 0));
+    roll.keyPressed(juce::KeyPress('z', juce::ModifierKeys::commandModifier, 0));
+    roll.keyPressed(juce::KeyPress('z', juce::ModifierKeys::commandModifier, 0));
+    report.expect(processor.pattern().hits.empty(), "its history is its own: undo stops at its first change");
+    click(roll, roll.field_point(0, 0));
+
+    auto* bars = find_child<juce::ComboBox>(editor, [](juce::ComboBox& c) { return c.getText() == "1 bar"; });
+    report.expect(bars != nullptr, "the pattern's length shows: 1 bar");
+    if (bars != nullptr)
+    {
+        bars->setText("4 bars", juce::sendNotificationSync);
+        report.expect(processor.pattern().bars == 4 && processor.pattern().step_count() == 64,
+                      "4 bars chosen: the pattern is four bars long");
+    }
+    PatternSlot named = processor.library().slot({1, 4});
+    named.name = "Groove";
+    processor.set_slot({1, 4}, named);
+
+    juce::MemoryBlock saved;
+    processor.getStateInformation(saved);
+    HandPanProcessor reloaded;
+    reloaded.setStateInformation(saved.getData(), (int)saved.getSize());
+    report.expect(reloaded.library() == processor.library(),
+                  "saved and loaded again, bit for bit: every pattern, its name, length and hits, the one edited");
+    report.expect(reloaded.hands().handedness == processor.hands().handedness &&
+                      reloaded.pattern().hits.size() == 1 && reloaded.library().name({1, 4}) == "Groove",
+                  "the hands too, and B5 'Groove' is the one edited");
+
+    bank.show_bank(0);
+    bank.choose(0);
+    report.expect(processor.library().current() == SlotId{0, 0} && processor.pattern().hits.size() == 1,
+                  "back to A1: its hit is still there");
+}
 } // namespace
 
 int main()
@@ -208,6 +256,7 @@ int main()
     roll.refresh();
     report.expect(roll.glow(0) > 0.0f && roll.glow(0) < 1.0f, "then fades, as the note does");
     check_drawing(report, processor, roll);
+    check_patterns(report, processor, dynamic_cast<HandPanEditor&>(*editor));
     editor.reset();
     return report.finish();
 }
