@@ -36,6 +36,8 @@ struct TimeSignature
 {
     int numerator = TIME_SIGNATURE_NUMERATOR_DEFAULT;
     int denominator = TIME_SIGNATURE_DENOMINATOR_DEFAULT;
+
+    bool operator==(const TimeSignature& o) const { return numerator == o.numerator && denominator == o.denominator; }
 };
 
 // one hit drawn on a field at a step
@@ -47,6 +49,11 @@ struct PatternHit
                              // every field at the same place until the strike points "O" and "P" are modelled)
     double size = HIT_SIZE_DEFAULT; // 0..1, the circle drawn: the bigger, the louder
     HandChoice hand = HandChoice::automatic;
+
+    bool operator==(const PatternHit& o) const
+    {
+        return step == o.step && field == o.field && x == o.x && y == o.y && size == o.size && hand == o.hand;
+    }
 };
 
 struct Pattern
@@ -60,6 +67,12 @@ struct Pattern
     int step_count() const { return bars * steps_per_bar(); }
     double step_beats() const { return 4.0 / signature.denominator / steps_per_beat; } // quarter notes
     double length_beats() const { return step_count() * step_beats(); }
+
+    bool operator==(const Pattern& o) const
+    {
+        return signature == o.signature && steps_per_beat == o.steps_per_beat && bars == o.bars && hits == o.hits;
+    }
+    bool operator!=(const Pattern& o) const { return !(*this == o); }
 };
 
 // the two hands of the player

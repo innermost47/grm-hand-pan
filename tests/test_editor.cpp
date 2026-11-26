@@ -8,6 +8,7 @@
 
 #include "../constants/plugin.hpp"
 #include "../constants/sizes.hpp"
+#include "../core/pattern_editor.hpp"
 #include "../plugin/HandPanEditor.h"
 #include "support/test_report.hpp"
 
@@ -26,6 +27,94 @@ T* find_child(juce::Component& parent, const std::function<bool(T&)>& matches)
             return deeper;
     }
     return nullptr;
+}
+
+// a mouse event on `c` at `at`, pressed at `down`
+juce::MouseEvent mouse(juce::Component& c, juce::Point<float> at, juce::Point<float> down, juce::ModifierKeys mods,
+                       bool dragged, int clicks = 1)
+{
+    const auto now = juce::Time::getCurrentTime();
+    return juce::MouseEvent(juce::Desktop::getInstance().getMainMouseSource(), at, mods,
+                            juce::MouseInputSource::defaultPressure, juce::MouseInputSource::defaultOrientation,
+                            juce::MouseInputSource::defaultRotation, juce::MouseInputSource::defaultTiltX,
+                            juce::MouseInputSource::defaultTiltY, &c, &c, now, down, now, clicks, dragged);
+}
+
+const juce::ModifierKeys LEFT{juce::ModifierKeys::leftButtonModifier};
+const juce::ModifierKeys COMMAND{juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::commandModifier};
+
+void click(SequencerView& roll, juce::Point<float> at, juce::ModifierKeys mods = LEFT)
+{
+    roll.mouseDown(mouse(roll, at, at, mods, false));
+    roll.mouseUp(mouse(roll, at, at, mods, false));
+}
+
+void drag(SequencerView& roll, juce::Point<float> from, juce::Point<float> to, juce::ModifierKeys mods = LEFT)
+{
+    roll.mouseDown(mouse(roll, from, from, mods, false));
+    roll.mouseDrag(mouse(roll, to, from, mods, true));
+    roll.mouseUp(mouse(roll, to, from, mods, true));
+}
+
+// the roll's gestures and shortcuts, as Anthony validated them (26/11/2026)
+void check_drawing(test::TestReport& report, HandPanProcessor& processor, SequencerView& roll)
+{
+    processor.transport().stop();
+    processor.set_pattern(Pattern{});
+    roll.refresh();
+    click(roll, roll.field_point(0, 5));
+    const auto& hits = [&]() -> const std::vector<PatternHit>& { return processor.pattern().hits; };
+    report.expect(hits().size() == 1 && hits()[0].step == 0 && hits()[0].field == 5 &&
+                      roll.selection() == std::vector<int>{0},
+                  "a click on a field: a hit there, selected");
+
+    drag(roll, roll.field_point(2, 4), roll.field_point(2, 4) - juce::Point<float>(0.0f, 80.0f));
+    report.expect(hits().size() == 2 && hits()[1].size > 0.9, "a hit drawn with a drag up: loud");
+
+    const double before = hits()[0].size;
+    drag(roll, roll.hit_point(0), roll.hit_point(0) + juce::Point<float>(0.0f, 40.0f));
+    report.expect(hits()[0].size < before && hits().size() == 2, "a drag down on a hit: softer, at any time");
+
+    click(roll, roll.hit_point(1), COMMAND);
+    report.expect(roll.selection().size() == 2, "Ctrl + click on a hit: added to the selection");
+    drag(roll, roll.hit_point(1), roll.field_point(6, 4), COMMAND);
+    report.expect(hits()[0].step == 4 && hits()[1].step == 6 && hits()[0].field == 5,
+                  "Ctrl + drag: the selection moved four steps later, each on its field");
+
+    roll.keyPressed(juce::KeyPress(juce::KeyPress::escapeKey));
+    drag(roll, roll.field_point(15, 0) + juce::Point<float>(-400.0f, -10.0f),
+         roll.field_point(5, 0) + juce::Point<float>(400.0f, 30.0f), COMMAND);
+    report.expect(roll.selection() == std::vector<int>{1}, "Ctrl + drag elsewhere: a rectangle selects what it covers");
+
+    click(roll, roll.field_point(6, 2));
+    click(roll, roll.field_point(6, 7));
+    report.expect(hits().size() == 3 && PatternEditor::hits_at(processor.pattern(), 6) == 2,
+                  "a third hit at a step: refused (two hands)");
+
+    roll.keyPressed(juce::KeyPress('a', juce::ModifierKeys::commandModifier, 0));
+    roll.keyPressed(juce::KeyPress(juce::KeyPress::deleteKey));
+    report.expect(hits().empty(), "Ctrl + A, Delete: the pattern emptied");
+    roll.keyPressed(juce::KeyPress('z', juce::ModifierKeys::commandModifier, 0));
+    report.expect(hits().size() == 3, "Ctrl + Z: back");
+    roll.keyPressed(juce::KeyPress('z', juce::ModifierKeys::commandModifier | juce::ModifierKeys::shiftModifier, 0));
+    report.expect(hits().empty(), "Ctrl + Shift + Z: emptied again");
+    roll.undo();
+
+    roll.keyPressed(juce::KeyPress('a', juce::ModifierKeys::commandModifier, 0));
+    roll.keyPressed(juce::KeyPress('c', juce::ModifierKeys::commandModifier, 0));
+    click(roll, roll.field_point(10, 1));
+    roll.keyPressed(juce::KeyPress('z', juce::ModifierKeys::commandModifier, 0)); // the hit the click drew
+    roll.keyPressed(juce::KeyPress('v', juce::ModifierKeys::commandModifier, 0));
+    report.expect(hits().size() == 6 && roll.selection().size() == 3,
+                  "Ctrl + C, a click at step 10, Ctrl + V: the three hits pasted there, selected");
+
+    roll.mouseDoubleClick(mouse(roll, roll.hit_point(5), roll.hit_point(5), LEFT, false, 2));
+    report.expect(hits().size() == 5, "a double-click on a hit: removed");
+    click(roll, roll.hit_point(0));
+    roll.clear();
+    report.expect(hits().size() == 4, "Clear with a hit selected: that hit");
+    roll.clear();
+    report.expect(hits().empty(), "Clear with nothing selected: the whole pattern");
 }
 } // namespace
 
@@ -118,6 +207,7 @@ int main()
     juce::Thread::sleep(300);
     roll.refresh();
     report.expect(roll.glow(0) > 0.0f && roll.glow(0) < 1.0f, "then fades, as the note does");
+    check_drawing(report, processor, roll);
     editor.reset();
     return report.finish();
 }

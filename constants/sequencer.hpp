@@ -40,6 +40,9 @@ constexpr int HIT_VELOCITY_MAX = 127;
 // ---- two hands, a finger each: no more hits at one step
 constexpr int MAX_HITS_PER_STEP = 2;
 
+// ---- the changes the roll can undo
+constexpr int HISTORY_LIMIT = 200;
+
 // ---- drawing a hit: the pixels of a vertical drag that take its circle from the smallest to the biggest
 constexpr double HIT_SIZE_DRAG_PIXELS = 160.0;
 
