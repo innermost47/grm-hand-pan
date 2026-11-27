@@ -110,9 +110,17 @@ private:
 	std::vector<int> columns_;          // each field's column
 	std::vector<grmh::Hand> hit_hands_; // each hit's hand
 	double bottom_ = 0.0;               // the step at the bottom line
+	double target_bottom_ = 0.0;        // target step snapped to bar boundaries
+	float wheel_accumulator_ = 0.0f;    // cumule les deltas du pavé tactile
+	double last_wheel_event_ms_ = 0.0;
+	double last_bar_scroll_ms_ = 0.0;
+	bool wheel_gesture_locked_ = false;
+	int last_wheel_direction_ = 0;
+	double last_step_time_ms_ = 0.0;
 	int shown_step_ = -1;               // the step playing, as last drawn
 	std::vector<float> glow_;           // each hit's light
 	double last_frame_ms_ = 0.0;
+
 
 	std::vector<int> selection_; // the selected hits' indices
 	std::vector<grmh::PatternHit> clipboard_;

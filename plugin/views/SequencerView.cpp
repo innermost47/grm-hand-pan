@@ -82,6 +82,7 @@ void SequencerView::reload()
 		selection_.clear();
 		glow_.clear();
 		bottom_ = 0.0;
+		target_bottom_ = 0.0;
 	}
 	const auto handedness = processor_.hands().handedness;
 	left_handed_.setToggleState(handedness == Handedness::left_handed, juce::dontSendNotification);
@@ -106,22 +107,81 @@ RollGeometry SequencerView::geometry() const
 void SequencerView::scroll_to(double bottom)
 {
 	const Pattern& p = processor_.pattern();
-	const double clamped = std::clamp(std::round(bottom), 0.0, RollGeometry::last_bottom(p.step_count(), p.steps_per_bar()));
-	if (clamped == bottom_)
-		return;
-	bottom_ = clamped;
+	const int per_bar = p.steps_per_bar();
+	const double max_bottom = RollGeometry::last_bottom(p.step_count(), per_bar);
+
+	const double snapped = std::round(bottom / per_bar) * per_bar;
+	target_bottom_ = std::clamp(snapped, 0.0, max_bottom);
+
+	if (std::abs(target_bottom_ - bottom_) > max_bottom)
+		bottom_ = target_bottom_;
+
 	repaint();
 }
 
 void SequencerView::scroll_by(double steps)
 {
-	if (steps != 0.0)
-		scroll_to(bottom_ + (std::fabs(steps) < 1.0 ? std::copysign(1.0, steps) : steps));
+	if (steps == 0.0)
+		return;
+
+	const Pattern& p = processor_.pattern();
+	const int per_bar = p.steps_per_bar();
+	const int direction = (steps > 0.0) ? 1 : -1;
+	scroll_to(target_bottom_ + (direction * per_bar));
 }
+
 
 void SequencerView::mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails& wheel)
 {
-	scroll_by((wheel.isReversed ? -wheel.deltaY : wheel.deltaY) * processor_.pattern().steps_per_bar());
+	if (wheel.isInertial)
+		return;
+
+	const float delta = wheel.isReversed ? -wheel.deltaY : wheel.deltaY;
+	if (delta == 0.0f)
+		return;
+
+	const double now = juce::Time::getMillisecondCounterHiRes();
+	const int current_dir = (delta > 0.0f) ? 1 : -1;
+
+	if (current_dir != last_wheel_direction_ && last_wheel_direction_ != 0)
+	{
+		wheel_gesture_locked_ = false;
+		wheel_accumulator_ = 0.0f;
+	}
+
+	const bool is_animating = std::abs(target_bottom_ - bottom_) > 0.15;
+
+	constexpr double kGestureTimeoutMs = 60.0;
+	const bool wheel_stopped = (now - last_wheel_event_ms_ > kGestureTimeoutMs);
+
+	if (wheel_stopped)
+	{
+		wheel_gesture_locked_ = false;
+		wheel_accumulator_ = 0.0f;
+	}
+	else if (!is_animating && wheel_gesture_locked_)
+	{
+		wheel_gesture_locked_ = false;
+	}
+
+	last_wheel_event_ms_ = now;
+	last_wheel_direction_ = current_dir;
+
+	if (wheel_gesture_locked_ || is_animating)
+		return;
+
+	wheel_accumulator_ += delta;
+
+	constexpr float threshold = 0.04f;
+
+	if (std::abs(wheel_accumulator_) >= threshold)
+	{
+		const int per_bar = processor_.pattern().steps_per_bar();
+		scroll_by(current_dir * per_bar);
+
+		wheel_gesture_locked_ = true;
+		wheel_accumulator_ = 0.0f;
+	}
 }
 
 int SequencerView::playing_step() const
@@ -140,6 +200,14 @@ void SequencerView::refresh()
 	const double now = juce::Time::getMillisecondCounterHiRes();
 	const double seconds = last_frame_ms_ > 0.0 ? (now - last_frame_ms_) / 1000.0 : 0.0;
 	last_frame_ms_ = now;
+	if (std::abs(target_bottom_ - bottom_) > 0.001)
+	{
+		const double t = 1.0 - std::exp(-seconds * 32.0);
+		bottom_ += (target_bottom_ - bottom_) * std::clamp(t, 0.05, 1.0);
+		if (std::abs(target_bottom_ - bottom_) < 0.05)
+			bottom_ = target_bottom_;
+		repaint();
+	}
 	if (processor_.pattern_version() != shown_version_)
 		reload();
 	const bool glowing = fade(seconds);
