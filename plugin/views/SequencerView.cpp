@@ -190,7 +190,18 @@ int SequencerView::playing_step() const
 	const Pattern& p = processor_.pattern();
 	if (!transport.shown_playing() && transport.shown_beat() <= 0.0)
 		return -1;
+
 	const double beat = transport.shown_beat();
+	const bool follow_playhead = processor_.parameters().getRawParameterValue(grmh::plugin::PARAM_FOLLOW)->load() > 0.5f;
+	const bool song_mode = processor_.parameters().getRawParameterValue(grmh::plugin::PARAM_SONG)->load() > 0.5f;
+
+	if (!follow_playhead && song_mode)
+	{
+		const SlotId played_slot = processor_.active_song_slot(beat);
+		if (played_slot.bank < 0 || played_slot != shown_slot_)
+			return -1;
+	}
+
 	const double in_pattern = std::fmod(std::max(0.0, beat - processor_.pattern_origin(beat)), p.length_beats());
 	return std::clamp((int)std::floor(in_pattern / p.step_beats() + 1e-9), 0, p.step_count() - 1);
 }

@@ -97,6 +97,7 @@ public:
 	grmh::CompiledPattern compiled_song() const;
 	double played_tempo() const;
 	float output_gain() const;
+	grmh::SlotId active_song_slot(double beat) const;
 
 private:
 	static juce::AudioProcessorValueTreeState::ParameterLayout create_layout();

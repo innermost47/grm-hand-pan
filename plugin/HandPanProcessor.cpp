@@ -292,6 +292,17 @@ void HandPanProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
 	gain_.applyGain(buffer, samples);
 }
 
+grmh::SlotId HandPanProcessor::active_song_slot(double beat) const
+{
+	const auto spans = song_spans();
+	const double place = ArrangementCompiler::song_place(arrangement_, spans, beat);
+	const int index = ArrangementCompiler::block_at(spans, place);
+	if (index < 0)
+		return { -1, -1 };
+	const ArrangementBlock& block = arrangement_.blocks[(size_t)index];
+	return block.rest ? SlotId{ -1, -1 } : block.slot;
+}
+
 juce::AudioProcessorEditor* HandPanProcessor::createEditor() { return new HandPanEditor(*this); }
 
 void HandPanProcessor::getStateInformation(juce::MemoryBlock& data)
