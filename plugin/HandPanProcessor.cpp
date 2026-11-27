@@ -21,10 +21,14 @@ HandPanProcessor::HandPanProcessor()
 	parameters_(*this, nullptr, "GRMHandPan", create_layout()), solver_(parameters_, models_),
 	notes_(D_KURD.begin(), D_KURD.end())
 {
+	parameters_.addParameterListener(plugin::PARAM_FOLLOW, this);
 	compile_library();
 }
 
-HandPanProcessor::~HandPanProcessor() { solver_.stopThread(plugin::SOLVER_STOP_TIMEOUT_MS); }
+HandPanProcessor::~HandPanProcessor() {
+	solver_.stopThread(plugin::SOLVER_STOP_TIMEOUT_MS);
+	parameters_.removeParameterListener(plugin::PARAM_FOLLOW, this);
+}
 
 juce::AudioProcessorValueTreeState::ParameterLayout HandPanProcessor::create_layout()
 {
@@ -50,6 +54,20 @@ juce::AudioProcessorValueTreeState::ParameterLayout HandPanProcessor::create_lay
 	layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{ plugin::PARAM_SONG, 1 },
 		plugin::PARAM_SONG_NAME, false));
 	return layout;
+}
+
+void HandPanProcessor::parameterChanged(const juce::String& parameter_id, float new_value)
+{
+	if (parameter_id == plugin::PARAM_FOLLOW)
+	{
+		const bool follow_enabled = new_value > 0.5f;
+		if (follow_enabled && song_mode())
+		{
+			const SlotId slot = active_song_slot(transport_.shown_beat());
+			if (slot.bank >= 0 && slot != library_.current())
+				select_pattern(slot);
+		}
+	}
 }
 
 void HandPanProcessor::set_pattern(const Pattern& pattern)
@@ -157,6 +175,8 @@ bool HandPanProcessor::patterns_mode() const
 }
 
 bool HandPanProcessor::song_mode() const { return parameters_.getRawParameterValue(plugin::PARAM_SONG)->load() > 0.5f; }
+
+bool HandPanProcessor::follow_playhead() const { return parameters_.getRawParameterValue(plugin::PARAM_FOLLOW)->load() > 0.5f; }
 
 // the keys of the patterns' mode: a key asks for its pattern from the next bar line, let go it stops it (a key
 // pressed late in a block counts from the block's start: a bar line just before it in the same block may start it)

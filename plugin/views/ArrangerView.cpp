@@ -159,15 +159,26 @@ void ArrangerView::set_loop(bool loop)
 	change([loop](Arrangement& a) { ArrangementEditor::set_loop(a, loop); });
 }
 
-// a selection is not a change of the song: never in the history
 void ArrangerView::select(int block, bool extend)
 {
 	Arrangement arrangement = processor_.arrangement();
-	const int anchor = extend && arrangement.selected_first >= 0 ? arrangement.selected_first : block;
-	ArrangementEditor::select(arrangement, anchor, block);
+	const bool already_single_selection = !extend &&
+		arrangement.selected_first == block && arrangement.selected_last == block;
+
+	if (already_single_selection)
+	{
+		arrangement.selected_first = -1;
+		arrangement.selected_last = -1;
+	}
+	else
+	{
+		const int anchor = extend && arrangement.selected_first >= 0 ? arrangement.selected_first : block;
+		ArrangementEditor::select(arrangement, anchor, block);
+	}
+
 	if (arrangement != processor_.arrangement())
 		processor_.set_arrangement(arrangement);
-	if (!extend)
+	if (!extend && !already_single_selection)
 		edit(block);
 	refresh();
 }
@@ -251,8 +262,8 @@ void ArrangerView::refresh()
 	{
 		followed_block_ = playing;
 		const bool follow_playhead =
-			processor_.parameters().getRawParameterValue(plugin::PARAM_FOLLOW)->load() > 0.5f;
-		if (follow_playhead && !processor_.song_mode() && playing >= 0 && !blocks[(size_t)playing].rest &&
+			processor_.follow_playhead();
+		if (follow_playhead && playing >= 0 && !blocks[(size_t)playing].rest &&
 			blocks[(size_t)playing].slot != library.current())
 			processor_.select_pattern(blocks[(size_t)playing].slot);
 	}

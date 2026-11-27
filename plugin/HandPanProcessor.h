@@ -21,7 +21,7 @@
 #include "JuceHeader.h"
 #include "SolverThread.h"
 
-class HandPanProcessor : public juce::AudioProcessor
+class HandPanProcessor : public juce::AudioProcessor, public juce::AudioProcessorValueTreeState::Listener
 {
 public:
 	HandPanProcessor();
@@ -87,6 +87,7 @@ public:
 	const grmh::Arrangement& arrangement() const { return arrangement_; }
 	void set_arrangement(const grmh::Arrangement& arrangement);
 	bool song_mode() const;
+	bool follow_playhead() const;
 	std::vector<grmh::BlockSpan> song_spans() const;
 	double pattern_origin(double beat) const;
 
@@ -138,6 +139,7 @@ private:
 	juce::AbstractFifo auditions_{ AUDITION_QUEUE };
 	std::array<grmh::BlockStrike, AUDITION_QUEUE> audition_strikes_{};
 	void play_auditions();
+	void parameterChanged(const juce::String& parameter_id, float new_value);
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HandPanProcessor)
 };

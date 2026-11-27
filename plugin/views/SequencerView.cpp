@@ -192,8 +192,8 @@ int SequencerView::playing_step() const
 		return -1;
 
 	const double beat = transport.shown_beat();
-	const bool follow_playhead = processor_.parameters().getRawParameterValue(grmh::plugin::PARAM_FOLLOW)->load() > 0.5f;
-	const bool song_mode = processor_.parameters().getRawParameterValue(grmh::plugin::PARAM_SONG)->load() > 0.5f;
+	const bool follow_playhead = processor_.follow_playhead();
+	const bool song_mode = processor_.song_mode();
 
 	if (!follow_playhead && song_mode)
 	{
