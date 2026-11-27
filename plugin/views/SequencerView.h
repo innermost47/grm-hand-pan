@@ -103,7 +103,6 @@ private:
 	HandPanProcessor& processor_;
 	RollToolbar toolbar_;
 	juce::ToggleButton left_handed_;
-	juce::Label bar_indicator_;
 	juce::Rectangle<int> roll_area_, left_gutter_, right_gutter_, names_area_;
 
 	int shown_version_ = -1;

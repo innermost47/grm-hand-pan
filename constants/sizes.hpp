@@ -53,6 +53,7 @@ namespace grmh::ui
 		int scale_width = 240;
 		int lap_switch_width = 120;
 		int left_handed_switch_width = 120;
+		int left_handed_switch_height = 20;
 		int follow_playhead_switch_width = 120;
 		int title_width = 170; // the plugin's name, at the left of the top bar
 		int loader_size = 14;  // the loader's circle, under the name

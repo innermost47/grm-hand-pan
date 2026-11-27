@@ -69,10 +69,6 @@ SequencerView::SequencerView(HandPanProcessor& processor) : processor_(processor
 			processor_.set_hands(hands);
 		};
 	addAndMakeVisible(left_handed_);
-	bar_indicator_.setJustificationType(juce::Justification::centred);
-	bar_indicator_.setFont(HandPanLookAndFeel::heading_font(TYPOGRAPHY.label));
-	bar_indicator_.setColour(juce::Label::textColourId, colour(COLORS.text));
-	addAndMakeVisible(bar_indicator_);
 	setWantsKeyboardFocus(true);
 	reload();
 }
@@ -201,10 +197,15 @@ float SequencerView::rhythm_mark(int step) const
 void SequencerView::resized()
 {
 	auto area = getLocalBounds();
+
+	auto top_row = area.removeFromTop(DIMENSIONS.left_handed_switch_height);
+	top_row.removeFromLeft(SPACING.md);
+	left_handed_.setBounds(top_row.removeFromLeft(DIMENSIONS.left_handed_switch_width));
+
 	auto footer = area.removeFromBottom(DIMENSIONS.roll_footer);
-	left_handed_.setBounds(footer.removeFromRight(DIMENSIONS.lap_switch_width));
-	footer.removeFromRight(SPACING.lg);
-	toolbar_.setBounds(footer.removeFromLeft(std::min(toolbar_.preferred_width(), footer.getWidth())));
+	const int toolbar_width = std::min(toolbar_.preferred_width(), footer.getWidth());
+	toolbar_.setBounds(footer.withSizeKeepingCentre(toolbar_width, DIMENSIONS.button_height));
+
 	names_area_ = area.removeFromBottom(DIMENSIONS.roll_names);
 	left_gutter_ = area.removeFromLeft(DIMENSIONS.roll_gutter);
 	right_gutter_ = area.removeFromRight(DIMENSIONS.roll_gutter);
@@ -625,7 +626,6 @@ void SequencerView::paint(juce::Graphics& g)
 	paint_names(g, geo);
 }
 
-// the bar and beat numbers on the left, a LED a step on the right
 void SequencerView::paint_gutters(juce::Graphics& g, const RollGeometry& geo, StepRange range) const
 {
 	const Pattern& p = processor_.pattern();
@@ -635,12 +635,30 @@ void SequencerView::paint_gutters(juce::Graphics& g, const RollGeometry& geo, St
 		const bool bar_start = s % p.steps_per_bar() == 0, beat_start = s % p.steps_per_beat == 0;
 		if (beat_start)
 		{
-			const auto label = left_gutter_.toFloat().withHeight(16.0f).withCentre({ left_gutter_.toFloat().getCentreX(), y });
-			g.setColour(colour(bar_start ? COLORS.text : COLORS.muted));
-			g.setFont(bar_start ? HandPanLookAndFeel::heading_font(TYPOGRAPHY.label)
-				: Typefaces::get().interface(TYPOGRAPHY.caption, Typefaces::Weight::light));
-			g.drawText(juce::String(bar_start ? s / p.steps_per_bar() + 1 : (s % p.steps_per_bar()) / p.steps_per_beat + 1),
-				label, juce::Justification::centred, false);
+			const auto label = left_gutter_.toFloat()
+				.withHeight(bar_start ? 20.0f : 16.0f)
+				.withCentre({ left_gutter_.toFloat().getCentreX(), y });
+
+			if (bar_start)
+			{
+				const auto badge = label.withSizeKeepingCentre(
+					std::min(label.getWidth() - 4.0f, 22.0f), 18.0f);
+				g.setColour(colour(COLORS.accent).withAlpha(0.18f));
+				g.fillRoundedRectangle(badge, 4.0f);
+				g.setColour(colour(COLORS.accent).withAlpha(0.55f));
+				g.drawRoundedRectangle(badge, 4.0f, BORDERS.hairline);
+
+				g.setColour(colour(COLORS.text));
+				g.setFont(HandPanLookAndFeel::heading_font(TYPOGRAPHY.label * 1.15f));
+				g.drawText(juce::String(s / p.steps_per_bar() + 1), label, juce::Justification::centred, false);
+			}
+			else
+			{
+				g.setColour(colour(COLORS.muted));
+				g.setFont(Typefaces::get().interface(TYPOGRAPHY.label, Typefaces::Weight::medium));
+				g.drawText(juce::String((s % p.steps_per_bar()) / p.steps_per_beat + 1), label,
+					juce::Justification::centred, false);
+			}
 		}
 		const float led = s == shown_step_ ? 10.0f : (beat_start ? 7.0f : 4.0f);
 		g.setColour(colour(s == shown_step_ ? COLORS.playing : (beat_start ? COLORS.muted : COLORS.line)));
