@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2026 Anthony Charretier
 cmake_minimum_required(VERSION 3.22)
-project(GRMHandPan VERSION 0.1.0 LANGUAGES C CXX)
+project(GRMHandPan VERSION 0.1.1 LANGUAGES C CXX)
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the build type" FORCE)
@@ -11,7 +11,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(GRMH_BUILD_PLUGIN "Build the JUCE plugin, VST3 and standalone (downloads JUCE)" ON)
-option(GRMH_BUILD_TESTS "Build the tests and the offline tools" OFF)
+option(GRMH_BUILD_TESTS "Build the unit and integration tests" OFF)
+option(GRMH_BUILD_TOOLS "Build the offline rendering and diagnostic tools" OFF)
 
 include(FetchContent)
 FetchContent_Declare(cppgrm
@@ -24,7 +25,7 @@ FetchContent_MakeAvailable(cppgrm)
 if(GRMH_BUILD_TESTS)
     enable_testing()
 
-    # a test of the core (no JUCE): tests/<source>.cpp, registered in ctest as <ctest_name>
+    # Core tests without JUCE: tests/<source>.cpp, registered in ctest as <ctest_name>
     function(grmh_add_core_test source ctest_name)
         add_executable(${source} tests/${source}.cpp)
         target_link_libraries(${source} PRIVATE cppgrm)
@@ -49,8 +50,10 @@ if(GRMH_BUILD_TESTS)
     grmh_add_core_test(test_pattern_library pattern_library)
     grmh_add_core_test(test_pattern_player pattern_player)
     grmh_add_core_test(test_arrangement arrangement)
+endif()
 
-    # the offline tools: the core's sound to a WAV file for the ear, and the probes of the networks
+if(GRMH_BUILD_TOOLS)
+    # Offline tools: WAV rendering from the core engine and network probes
     foreach(tool render_scale render_melody probe_click probe_sympathy measure_recordings)
         add_executable(${tool} tools/${tool}.cpp)
         target_link_libraries(${tool} PRIVATE cppgrm)
@@ -77,7 +80,7 @@ if(GRMH_BUILD_PLUGIN)
         IS_MIDI_EFFECT FALSE
         COPY_PLUGIN_AFTER_BUILD FALSE)
 
-    # the typefaces of the interface (SIL Open Font License, reduced to the Latin glyphs)
+    # Interface typefaces (SIL Open Font License, subsetted to Latin glyphs)
     juce_add_binary_data(GRMHandPanBinaryData
         SOURCES
             assets/fonts/zen-kaku-gothic-light.ttf
@@ -121,16 +124,16 @@ if(GRMH_BUILD_PLUGIN)
             juce::juce_recommended_lto_flags
             juce::juce_recommended_warning_flags)
 
-    if(GRMH_BUILD_TESTS)
-        # a program built against the plugin's code (its processor, its look and feel, its typefaces)
-        function(grmh_add_plugin_executable path name)
-            add_executable(${name} ${path}/${name}.cpp)
-            target_link_libraries(${name} PRIVATE GRMHandPan GRMHandPanBinaryData cppgrm juce::juce_audio_utils
-                juce::juce_recommended_config_flags)
-            target_compile_definitions(${name} PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
-        endfunction()
+    # Build an executable linked against the plugin's processor, look-and-feel, and typefaces
+    function(grmh_add_plugin_executable path name)
+        add_executable(${name} ${path}/${name}.cpp)
+        target_link_libraries(${name} PRIVATE GRMHandPan GRMHandPanBinaryData cppgrm juce::juce_audio_utils
+            juce::juce_recommended_config_flags)
+        target_compile_definitions(${name} PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+    endfunction()
 
-        # a test of the plugin's code, registered in ctest as <ctest_name>
+    if(GRMH_BUILD_TESTS)
+        # Plugin tests registered in ctest
         function(grmh_add_plugin_test source ctest_name)
             grmh_add_plugin_executable(tests ${source})
             add_test(NAME ${ctest_name} COMMAND ${source})
@@ -139,8 +142,10 @@ if(GRMH_BUILD_PLUGIN)
         grmh_add_plugin_test(plugin_host_test plugin_as_hosted)
         grmh_add_plugin_test(test_design_system design_system)
         grmh_add_plugin_test(test_editor plugin_editor)
+    endif()
 
-        # the interface drawn to a PNG for Anthony's eye
+    if(GRMH_BUILD_TOOLS)
+        # Render interface views to PNG for visual inspection
         grmh_add_plugin_executable(tools render_design_system)
         grmh_add_plugin_executable(tools render_editor)
     endif()

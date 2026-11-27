@@ -13,6 +13,15 @@ A D Kurd handpan in a VST3 / standalone plugin (JUCE), with its own sequencer, t
 on the instrument's fields, two hands at a time, and play them in patterns and songs. Or play it from MIDI. It is
 still a young instrument (version 0.1): one scale, one way of striking.
 
+## The GRM family
+
+- **[grm-core](https://github.com/innermost47/grm-core)**: the Global Relational Model and the research it comes
+  from.
+- **[cppgrm](https://github.com/innermost47/cppgrm)**: the GRM engine, one C++17 header with no dependency.
+- **[pygrm](https://pypi.org/project/pygrm/)**: the same engine as a Python package.
+- **[GRM Guitar](https://github.com/innermost47/grm-guitar-vst)**: a guitar built the same way, whose architecture
+  and developer documentation this project follows.
+
 ## Audio examples
 
 Rendered by the model alone, straight from `tools/` (no effect, no reverb, nothing edited), at 1 m from a D Kurd:
@@ -177,11 +186,11 @@ On Linux, JUCE needs its usual development packages (ALSA, X11, Freetype... see 
 
 ### Tests and offline renders
 
-Add `-DGRMH_BUILD_TESTS=ON` to the configure line to build the tests and the tools (`-DGRMH_BUILD_PLUGIN=OFF` skips
-JUCE and the plugin, and the tests that need it):
+Add `-DGRMH_BUILD_TESTS=ON` to build the tests, and `-DGRMH_BUILD_TOOLS=ON` to build the tools (-DGRMH_BUILD_PLUGIN=OFF skips
+JUCE and the plugin, along with the plugin tests and rendering tools that need it):
 
 ```bat
-cmake -B build -DGRMH_BUILD_TESTS=ON
+cmake -B build -DGRMH_BUILD_TESTS=ON -DGRMH_BUILD_TOOLS=ON
 cmake --build build --config Release
 ctest --test-dir build -C Release
 ```
@@ -268,15 +277,6 @@ error before it was kept.
   calibrated on (their levels are in `constants/recordings.hpp`; the recordings themselves are not redistributed).
 - Petersen et al., "Grip strength and hand dominance: challenging the 10% rule", Am. J. Occup. Ther. (1989). Fujii et
   al., "Tapping speed asymmetry in drummers for single-hand tapping with a stick" (2006): the two hands.
-
-## The GRM family
-
-- **[grm-core](https://github.com/innermost47/grm-core)**: the Global Relational Model and the research it comes
-  from.
-- **[cppgrm](https://github.com/innermost47/cppgrm)**: the GRM engine, one C++17 header with no dependency.
-- **[pygrm](https://pypi.org/project/pygrm/)**: the same engine as a Python package.
-- **[GRM Guitar](https://github.com/innermost47/grm-guitar-vst)**: a guitar built the same way, whose architecture
-  and developer documentation this project follows.
 
 ## License
 
