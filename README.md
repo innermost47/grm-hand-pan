@@ -5,7 +5,9 @@ long, how the air in the shell answers, how a fingertip strikes, how the fields 
 network**: physical relations solved against published measurements, each with its uncertainty. No samples, no
 filter tuned by ear. Free software under the AGPL-3.0.
 
-## Video demo
+## Videos demos
+
+[![Watch the GRM Guitar with GRM Hand Pan and GRM Open Labs](https://img.youtube.com/vi/-11V4Tk_h5U/maxresdefault.jpg)](https://www.youtube.com/watch?v=-11V4Tk_h5U)  
 
 [![Watch the GRM Hand Pan demo on YouTube](https://img.youtube.com/vi/K8vk2t-FpjY/maxresdefault.jpg)](https://www.youtube.com/watch?v=K8vk2t-FpjY)
 
