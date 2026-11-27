@@ -17,36 +17,37 @@
 class TopBar : public juce::Component
 {
 public:
-    explicit TopBar(HandPanProcessor& processor);
+	explicit TopBar(HandPanProcessor& processor);
 
-    void paint(juce::Graphics& g) override;
-    void resized() override;
-    void refresh(); // at every frame (VBlankAttachment)
-    const LoadingIndicator& loader() const { return loader_; } // for tests
+	void paint(juce::Graphics& g) override;
+	void resized() override;
+	void refresh(); // at every frame (VBlankAttachment)
+	const LoadingIndicator& loader() const { return loader_; } // for tests
 
 private:
-    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
-    using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
+	using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+	using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
 
-    void choose_signature();
-    void choose_bars();
-    void show_pattern(); // the signature and the bars of the pattern being edited
+	void choose_signature();
+	void choose_bars();
+	void show_pattern(); // the signature and the bars of the pattern being edited
 
-    HandPanProcessor& processor_;
-    Knob volume_{"V"}, width_{"W"};
-    juce::ToggleButton on_lap_;
-    TransportButton play_{TransportButton::Sign::play, "Play"};
-    TransportButton pause_{TransportButton::Sign::pause, "Pause"};
-    TransportButton stop_{TransportButton::Sign::stop, "Stop: back to the start"};
-    juce::Label position_, tempo_shown_;
-    juce::Slider tempo_{juce::Slider::LinearBarVertical, juce::Slider::TextBoxLeft};
-    juce::ComboBox signature_, bars_, scale_;
-    LoadingIndicator loader_; // under the name, while the instrument is being solved
-    int shown_version_ = -1;
-    juce::Rectangle<int> title_area_; // where the plugin's name is written
-    std::unique_ptr<SliderAttachment> volume_attachment_, width_attachment_, tempo_attachment_;
-    std::unique_ptr<ButtonAttachment> on_lap_attachment_;
-    juce::VBlankAttachment vblank_{this, [this] { refresh(); }};
+	HandPanProcessor& processor_;
+	Knob volume_{ "V" }, width_{ "W" };
+	juce::ToggleButton on_lap_;
+	juce::ToggleButton follow_playhead_;
+	TransportButton play_{ TransportButton::Sign::play, "Play" };
+	TransportButton pause_{ TransportButton::Sign::pause, "Pause" };
+	TransportButton stop_{ TransportButton::Sign::stop, "Stop: back to the start" };
+	juce::Label position_, tempo_shown_;
+	juce::Slider tempo_{ juce::Slider::LinearBarVertical, juce::Slider::TextBoxLeft };
+	juce::ComboBox signature_, bars_, scale_;
+	LoadingIndicator loader_; // under the name, while the instrument is being solved
+	int shown_version_ = -1;
+	juce::Rectangle<int> title_area_; // where the plugin's name is written
+	std::unique_ptr<SliderAttachment> volume_attachment_, width_attachment_, tempo_attachment_;
+	std::unique_ptr<ButtonAttachment> on_lap_attachment_, follow_attachment_;
+	juce::VBlankAttachment vblank_{ this, [this] { refresh(); } };
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TopBar)
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TopBar)
 };
